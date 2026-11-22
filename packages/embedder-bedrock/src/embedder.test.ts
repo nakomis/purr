@@ -122,3 +122,48 @@ describe('createBedrockEmbedder', () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+describe('pacing', () => {
+  it('starts calls at most maxPerSecond apart', async () => {
+    let clock = 0;
+    const starts: number[] = [];
+    const embedder = createBedrockEmbedder({
+      maxPerSecond: 10,
+      concurrency: 1,
+      now: () => clock,
+      sleep: async (ms) => {
+        clock += ms;
+      },
+      client: {
+        send: async () => {
+          starts.push(clock);
+          return { body: new TextEncoder().encode(JSON.stringify({ embedding: new Array(1024).fill(0.1) })) };
+        },
+      },
+    });
+    await embedder.embed(['a', 'b', 'c', 'd', 'e']);
+    const gaps = starts.slice(1).map((t, i) => t - (starts[i] as number));
+    expect(starts).toHaveLength(5);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(100);
+  });
+});
+
+describe('pacing across workers', () => {
+  it('shares one rate between parallel workers (real timers)', async () => {
+    const starts: number[] = [];
+    const embedder = createBedrockEmbedder({
+      maxPerSecond: 50,
+      concurrency: 4,
+      client: {
+        send: async () => {
+          starts.push(Date.now());
+          return { body: new TextEncoder().encode(JSON.stringify({ embedding: new Array(1024).fill(0.1) })) };
+        },
+      },
+    });
+    const t0 = Date.now();
+    await embedder.embed(['a', 'b', 'c', 'd', 'e', 'f']);
+    // Six calls at 50/s need at least five 20 ms gaps, whatever the concurrency.
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(95);
+    expect(starts).toHaveLength(6);
+  });
+});

@@ -23,6 +23,13 @@ export interface BedrockEmbedderOptions {
   /** Base back-off in ms (doubles per attempt, with jitter). Default 250. */
   retryBaseMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * The most InvokeModel calls to start per second, across all workers. Bedrock's
+   * on-demand quota for Titan v2 is per minute (600 in prod), so pacing under it
+   * keeps a large rebuild from being throttled into failure. Default: unpaced.
+   */
+  maxPerSecond?: number;
+  now?: () => number;
 }
 
 /** Titan v2 accepts 8,192 tokens; ~8,000 characters is safely inside that. */
@@ -47,6 +54,17 @@ export function createBedrockEmbedder(opts: BedrockEmbedderOptions = {}): Embedd
   const maxAttempts = opts.maxAttempts ?? 5;
   const retryBaseMs = opts.retryBaseMs ?? 250;
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const now = opts.now ?? Date.now;
+  const spacingMs = opts.maxPerSecond && opts.maxPerSecond > 0 ? 1000 / opts.maxPerSecond : 0;
+  let nextSlot = 0;
+  /** Waits for this call's turn: calls start at most maxPerSecond apart, shared by every worker. */
+  async function pace(): Promise<void> {
+    if (!spacingMs) return;
+    const t = now();
+    const at = Math.max(t, nextSlot);
+    nextSlot = at + spacingMs;
+    if (at > t) await sleep(at - t);
+  }
   const client: BedrockLike =
     opts.client ??
     (new BedrockRuntimeClient({ region: opts.region ?? 'eu-west-2' }) as unknown as BedrockLike);
@@ -62,6 +80,7 @@ export function createBedrockEmbedder(opts: BedrockEmbedderOptions = {}): Embedd
     });
     for (let attempt = 1; ; attempt++) {
       try {
+        await pace();
         const res = await client.send(command);
         const raw = res.body;
         const json =
