@@ -1,0 +1,16 @@
+{
+  "name": "@purr/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Conformance suites every Purr adapter must pass (storage and search).",
+  "dependencies": {
+    "@purr/domain": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": "*"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "types": ["node", "vitest/globals"] },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "apps/api/src/**/*.ts",
+    "apps/mcp/src/**/*.ts",
+    "tools/*/src/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

@@ -1,0 +1,21 @@
+packages:
+  - packages/*
+  - apps/*
+  - tools/*
+  - infra
+
+# pnpm runs no dependency build scripts unless allowed here. esbuild's postinstall
+# fetches its native binary, which CDK's NodejsFunction and Vite both need.
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": false
+  unrs-resolver: false
+
+# @aws-sdk/xml-builder 3.972.20+ pulls in a pure-ESM dependency that breaks Jest's
+# CJS runner in infra (as in nakostat, NAKO-35).
+overrides:
+  "@aws-sdk/xml-builder": 3.972.19
+
+# Refuse versions published less than a day ago (supply-chain defence). CI installs
+# with --frozen-lockfile, so this only affects local updates.
+minimumReleaseAge: 1440

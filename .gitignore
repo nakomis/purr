@@ -155,3 +155,18 @@ vite.config.ts.timestamp-*
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
+
+# Planning
+PLAN.md
+
+# CDK
+cdk.out/
+*.out/
+
+# Coverage
+coverage/
+lcov.info
+
+# Local config written at deploy time
+apps/web/src/config/config.json
+.env.local

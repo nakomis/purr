@@ -1,0 +1,13 @@
+{
+  "name": "@purr/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Purr's storage-neutral domain: types, rules, services and port interfaces. Depends on no AWS SDK and no other @purr package (tests use the in-memory adapter).",
+  "devDependencies": {
+    "@purr/storage-memory": "workspace:*"
+  }
+}
