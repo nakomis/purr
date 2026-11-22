@@ -8,12 +8,15 @@ Story (frames at 24 fps, G = the frame the jaws close):
                every cat follows it
   G-9..G-4     the grabber crouches slightly (anticipation)
   G-4..G       it strikes: the head lunges forward and down over the mouse
-  G            the mouse is gone; a tail hangs from the grabber's mouth
+  G            the jaws close: the mouse is held crosswise in the mouth, its
+               front hanging out one side and its rear out the other
   G..G+6       a little worrying shake
-  G+6..G+13    the head comes up, proudly, tail dangling
-  G+15..G+27   the tail is slurped up in three gulps of breath
-  G+28..G+37   the swallow: the head drops and squashes, then settles
-  G+39..G+58   eyes closed contentedly; a lick of the lips
+  G+6..G+13    the head comes up, proudly, mouse dangling and kicking
+  G+13..G+30   a beat with the mouse held (it keeps wriggling)
+  G+30, G+36   two jerks of the head draw the mouse in; only its tail is left
+  G+42..G+54   the tail is slurped up in three gulps of breath
+  G+55..G+64   the swallow: the head drops and squashes, then settles
+  G+66..G+85   eyes closed contentedly; a lick of the lips
   everyone else snaps round to look at the grabber as it strikes, and looks
   back to the front after the swallow
 """
@@ -58,15 +61,22 @@ KEYS = [  # frame, dx, dy, scale, squash (y multiplier), rotation°, ease into t
     (G + 2, 0, 9, 1.13, 1.00, -3, 'io'),    # worry it
     (G + 4, 0, 10, 1.14, 1.00, 3, 'io'),
     (G + 6, 0, 9, 1.13, 1.00, 0, 'io'),
-    (G + 13, 0, -10, 1.03, 1.00, 4, 'io'),  # head up, tail dangling
-    (G + 17, 0, -7, 1.03, 1.00, 3, 'io'),  # slurp
-    (G + 19, 0, -10, 1.03, 1.00, 4, 'io'),
-    (G + 23, 0, -7, 1.03, 1.00, 3, 'io'),  # slurp
-    (G + 25, 0, -10, 1.03, 1.00, 4, 'io'),
-    (G + 28, 0, -10, 1.03, 1.00, 0, 'io'),
-    (G + 31, 0, -2, 1.00, 0.93, 0, 'in'),   # swallow: drop and squash
-    (G + 34, 0, 0, 1.00, 1.05, 0, 'io'),    # ...and stretch
-    (G + 37, 0, 0, 1.00, 1.00, 0, 'io'),
+    (G + 13, 0, -18, 1.03, 1.00, 4, 'io'),  # head up, mouse dangling
+    (G + 18, 0, -16, 1.03, 1.00, 1, 'io'),   # holding it: small adjustments
+    (G + 23, 0, -18, 1.03, 1.00, 4, 'io'),
+    (G + 28, 0, -17, 1.03, 1.00, 3, 'io'),
+    (G + 30, 0, -22, 1.05, 1.00, -1, 'in'), # jerk: the mouse goes in part way
+    (G + 33, 0, -16, 1.03, 1.00, 3, 'io'),
+    (G + 36, 0, -20, 1.05, 1.00, -1, 'in'), # jerk: in it goes, bar the tail
+    (G + 40, 0, -10, 1.03, 1.00, 4, 'io'),
+    (G + 44, 0, -7, 1.03, 1.00, 3, 'io'),   # slurp
+    (G + 46, 0, -10, 1.03, 1.00, 4, 'io'),
+    (G + 50, 0, -7, 1.03, 1.00, 3, 'io'),   # slurp
+    (G + 52, 0, -10, 1.03, 1.00, 4, 'io'),
+    (G + 55, 0, -10, 1.03, 1.00, 0, 'io'),
+    (G + 58, 0, -2, 1.00, 0.93, 0, 'in'),   # swallow: drop and squash
+    (G + 61, 0, 0, 1.00, 1.05, 0, 'io'),    # ...and stretch
+    (G + 64, 0, 0, 1.00, 1.00, 0, 'io'),
     (N - 1, 0, 0, 1.00, 1.00, 0, 'io'),
 ]
 
@@ -80,10 +90,14 @@ def head_at(t):
     return KEYS[-1][1:-1]
 
 
-SQUINT = (G + 39, G + 58)
-TAIL_FULL = (G, G + 15)
-SLURP = [(G + 15, .8), (G + 17, .62), (G + 21, .45), (G + 23, .28), (G + 27, .12), (G + 28, 0)]
-LICK = [(G + 42, (0, 5, 10, 7)), (G + 44, (6, 3, 10, 6.5)), (G + 46, (11, 0, 8, 5.5)), (G + 48, None)]
+SQUINT = (G + 66, G + 85)
+# (frame, how far the mouse has slid into the mouth or None once it's gone, leg pose)
+HELD = [(G + f, 0, (0 if (f // 3) % 2 == 0 else 2)) for f in range(0, 30, 3)] + \
+       [(G + 30, 6, 0), (G + 33, 12, 2), (G + 36, None, 0)]
+FRONT_GONE = G + 30   # the first jerk takes the head end in; the mask then hides that side
+TAIL_FULL = (G + 36, G + 42)
+SLURP = [(G + 42, .8), (G + 44, .62), (G + 48, .45), (G + 50, .28), (G + 54, .12), (G + 55, 0)]
+LICK = [(G + 69, (0, 5, 10, 7)), (G + 71, (6, 3, 10, 6.5)), (G + 73, (11, 0, 8, 5.5)), (G + 75, None)]
 
 
 def tail_points(frac):
@@ -110,7 +124,7 @@ def watcher_gaze(c_idx, t, L, R):
     gx = (cats[ci][0]['cx'] + cats[ci][1]['cx']) / 2
     at_grabber = math.tanh((gx - bx) / 90)
     b = smooth(G - 4, G + 1, t)
-    w = smooth(6, 15, t) * (1 - smooth(G + 50, G + 64, t))
+    w = smooth(6, 15, t) * (1 - smooth(G + 77, G + 91, t))
     g = (1 - b) * at_mouse + b * at_grabber
     return A * w * g, w * (1.8 * (1 - b) + 0.6 * b)
 
@@ -227,7 +241,57 @@ def tail_fn(frac):
     return fn
 
 
-keyed_layer('Tail', [(TAIL_FULL[0], tail_fn(1.0))] + [(f, tail_fn(fr) if fr else None) for f, fr in SLURP])
+import re
+HELD_K = 1.2      # size of the held mouse in the head's space
+GAP = 6.5         # half-width of the mouth gap the mouse disappears into
+
+
+def held_shapes(d, pose):
+    """The mouse held crosswise in the jaws by the scruff, limp at both ends.
+
+    `d` slides it towards the mouth as it is drawn in."""
+    xc = 28
+
+    def tr(x, y):
+        droop = 0.022 * min((x - xc) ** 2, 34 ** 2)
+        return mrx + (x - xc) * HELD_K - d, mry + (y + 19 + droop) * HELD_K
+
+    out = []
+    for s in mouse_pose(*POSES[pose]):
+        s = dict(s)
+        if 'ellipse' in s:
+            x, y, w, h = s['ellipse']
+            X, Y = tr(x, y)
+            s['ellipse'] = (X, Y, w * HELD_K, h * HELD_K)
+        else:
+            s['d'] = re.sub(r'(-?[\d.]+),(-?[\d.]+)',
+                            lambda m: '%.1f,%.1f' % tr(float(m[1]), float(m[2])), s['d'])
+            if 'stroke_width' in s:
+                s['stroke_width'] *= HELD_K
+        out.append(s)
+    return out
+
+
+def held_fn(d, pose):
+    return (lambda: draw_shapes(ac, held_shapes(d, pose))) if d is not None else None
+
+
+held = keyed_layer('Mouse in mouth', [(f, held_fn(sx, p)) for f, sx, p in HELD])
+LEFT, RIGHT = (mrx - 90, mrx - GAP), (mrx + GAP, mrx + 100)
+
+
+def gap_rects(*sides):
+    def fn():
+        for x0, x1 in sides:
+            ac('draw.rect', x=x0, y=mry - 7, w=x1 - x0, h=70, fill='#00ff00', stroke=None)
+    return fn
+
+
+gap = keyed_layer('Mouth gap (mask)', [(0, gap_rects(LEFT, RIGHT)), (FRONT_GONE, gap_rects(RIGHT))])
+ac('layer.set_type', type='mask', layer=gap)
+ac('layer.set_type', type='masked', layer=held)
+
+keyed_layer('Tail',[(TAIL_FULL[0], tail_fn(1.0))] + [(f, tail_fn(fr) if fr else None) for f, fr in SLURP])
 
 
 def tongue_fn(spec):

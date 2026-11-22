@@ -1,7 +1,7 @@
 import json, math
 eyes=json.load(open('eyes.json'))
 cats=[eyes[i:i+2] for i in range(0,8,2)]
-names=['Boots','Tau','Mu','Chi']   # left→right: black, tuxedo, ginger, tabby
+names=['Kappa','Tau','Mu','Chi']   # left→right: long-haired black, tuxedo, ginger, tabby
 N=120; WALL=689
 S=[]
 def c(cmd,**p): S.append({"cmd":cmd,"params":p})

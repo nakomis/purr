@@ -16,7 +16,7 @@ from PIL import Image
 from scipy import ndimage as nd
 
 CATS = [  # left to right; box = the column band the head may occupy
-    dict(name='Boots', box=(30, 470, 300, 688), mouth=(172, 668)),
+    dict(name='Kappa', box=(30, 470, 300, 688), mouth=(172, 668)),
     dict(name='Tau',   box=(298, 485, 515, 688), mouth=(403, 670)),
     dict(name='Mu',    box=(510, 485, 742, 688), mouth=(625, 668)),
     dict(name='Chi',   box=(737, 460, 995, 688), mouth=(860, 668)),

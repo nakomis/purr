@@ -7,8 +7,8 @@ and MP4 (1024 px) exports.
 | Animation | Files | What happens |
 | --- | --- | --- |
 | Run past | `purr-logo-2.*` | A mouse runs right to left along the wall; every cat's eyes follow it. 5 s loop. |
-| Tau grabs it | `purr-logo-2-grab-tau.*` | Tau lunges and catches the mouse, slurps up the tail, swallows, and closes its eyes contentedly; the others look at Tau, then back to the front. 7 s. |
-| Boots, Mu, Chi grab it | planned | Same script, a different cat (`grab.py 0`, `2`, `3`). |
+| Tau grabs it | `purr-logo-2-grab-tau.*` | Tau lunges and catches the mouse, holds it wriggling crosswise in her jaws, gulps it in, slurps up the tail, swallows, and closes her eyes contentedly; the others look at Tau, then back to the front. 7 s. |
+| Kappa, Mu, Chi grab it | planned | Same script, a different cat (`grab.py 0`, `2`, `3`). |
 
 ## Rebuilding
 
@@ -22,7 +22,7 @@ python3 prep.py /path/to/docs/logo-candidates/purr-logo-2.png  # pupil-less bg.p
 # run past
 bash rebuild.sh                       # -> purr-full.anicraft
 
-# a grab: 0 Boots, 1 Tau, 2 Mu, 3 Chi
+# a grab: 0 Kappa, 1 Tau, 2 Mu, 3 Chi
 python3 prep_grab.py 1                # head_Tau.png, bg_no_Tau.png, wall.png, grab_Tau.json
 python3 grab.py 1 grab-tau.anicraft
 ```
@@ -40,7 +40,8 @@ Export with AniCraft (`file.export_video`, `file.export_gif`), or open the
   below the wall line so it can rise), fills the hole behind it from the
   surrounding backdrop, and saves the front of the wall as a layer of its own.
 - **grab.py** puts the head in a symbol of its own, holding its pupils, closed
-  eyelids, the dangling tail and a tongue, all timed to the scene. The head's
+  eyelids, the held mouse (clipped by a mask with a gap at the mouth, so it
+  looks clamped in the jaws), the dangling tail and a tongue, all timed to the scene. The head's
   lunge, shake, rise and swallow are keyed on the main timeline.
 - **ac.py** drives `anicraft-cli serve`, so the scripts can use the layer and
   symbol ids AniCraft hands back.

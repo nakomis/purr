@@ -6,7 +6,7 @@ copies; the drawings are identical.)
 import json, math
 
 WALL = 689            # where the mouse's feet land
-NAMES = ['Boots', 'Tau', 'Mu', 'Chi']   # left to right
+NAMES = ['Kappa', 'Tau', 'Mu', 'Chi']   # left to right
 PUPIL = '#15130f'
 MOUSE_SCALE = 140     # %
 MOUSE_SPEED = 1220 / 60   # px per frame
