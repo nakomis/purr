@@ -1,0 +1,14 @@
+{
+  "name": "@purr/embedder-bedrock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Bedrock Titan Text Embeddings v2 implementation of Purr's Embedder port.",
+  "dependencies": {
+    "@purr/domain": "workspace:*",
+    "@aws-sdk/client-bedrock-runtime": "^3.940.0"
+  }
+}
