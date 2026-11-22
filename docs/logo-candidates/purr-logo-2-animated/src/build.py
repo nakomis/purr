@@ -87,6 +87,14 @@ c("select.all") if False else None
 S.append({"cmd":"__SELECT_LAYER_ALL__"})
 c("modify.convert_to_symbol",name="Mouse run cycle",kind="graphic")
 S.append({"cmd":"__EDIT_SYMBOL__"})
+# Redraw pose 0 from inside the symbol, so all four poses share the symbol's
+# coordinate space. (Converting re-registers the original artwork about its
+# centre, whilst artwork drawn inside the symbol is not, so the first pose sat
+# ~47px left of the others and the mouse jumped back every cycle.)
+c("timeline.goto",frame=0)
+c("edit.select_all")
+c("edit.delete")
+draw_pose(poses[0])
 for i,p in enumerate(poses[1:],1):
     c("timeline.insert_blank_keyframe",frame=i)
     c("timeline.goto",frame=i)
