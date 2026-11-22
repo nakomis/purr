@@ -27,6 +27,10 @@ export interface Env {
   ALLOWED_EMAILS?: string;
   EMBEDDING_MODEL?: string;
   VERSION?: string;
+  /** The indexer's embedding pace (requests per second), under the Bedrock quota. */
+  EMBED_RPS?: number;
+  /** How long one indexer run may embed before saving and handing over to the next. */
+  INDEX_BUDGET_MS?: number;
 }
 
 export function readEnv(env: NodeJS.ProcessEnv = process.env): Env {
@@ -44,6 +48,8 @@ export function readEnv(env: NodeJS.ProcessEnv = process.env): Env {
     ALLOWED_EMAILS: env.ALLOWED_EMAILS,
     EMBEDDING_MODEL: env.EMBEDDING_MODEL,
     VERSION: env.VERSION,
+    ...(env.EMBED_RPS ? { EMBED_RPS: Number(env.EMBED_RPS) } : {}),
+    ...(env.INDEX_BUDGET_MS ? { INDEX_BUDGET_MS: Number(env.INDEX_BUDGET_MS) } : {}),
   };
 }
 
@@ -52,7 +58,10 @@ export function makeStorage(env: Env): Storage {
 }
 
 export function makeEmbedder(env: Env) {
-  return createBedrockEmbedder(env.EMBEDDING_MODEL ? { modelId: env.EMBEDDING_MODEL } : {});
+  return createBedrockEmbedder({
+    ...(env.EMBEDDING_MODEL ? { modelId: env.EMBEDDING_MODEL } : {}),
+    ...(env.EMBED_RPS ? { maxPerSecond: env.EMBED_RPS } : {}),
+  });
 }
 
 export function makeSearch(env: Env): SearchIndex {

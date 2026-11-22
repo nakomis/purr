@@ -90,7 +90,15 @@ export class ApiStack extends cdk.Stack {
       functionName: `purr-indexer-${deployEnv}`,
       entry: path.join(REPO_ROOT, 'apps/api/src/handlers/indexer.ts'),
       memorySize: 1536,
-      timeout: cdk.Duration.minutes(5),
+      // A first build embeds thousands of texts at the paced rate; each run spends
+      // up to INDEX_BUDGET_MS embedding, saves, and the next carries on.
+      timeout: cdk.Duration.minutes(15),
+      environment: {
+        ...common.environment,
+        // 8/s = 480/min, under the account's 600/min Titan v2 on-demand quota.
+        EMBED_RPS: '8',
+        INDEX_BUDGET_MS: String(13 * 60 * 1000),
+      },
       // One rebuild at a time: two would race to write the same snapshot.
       reservedConcurrentExecutions: 1,
     });

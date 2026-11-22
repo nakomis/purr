@@ -295,26 +295,29 @@ describe('documentsFor and rebuildIndex', () => {
     const store = { load: async () => saved.at(-1), save: async (s: Snapshot) => void saved.push(s) };
     const cache = new MemoryVectorCache();
 
-    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toEqual({
+    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toMatchObject({
       docs: 4,
       embedded: 4,
+      complete: true,
     });
     expect(cache.saves).toBe(1);
 
     // Nothing changed: nothing is embedded.
     embed.mockClear();
-    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toEqual({
+    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toMatchObject({
       docs: 4,
       embedded: 0,
+      complete: true,
     });
     expect(embed).not.toHaveBeenCalled();
 
     // One edit: one embedding.
     const task = await storage.tasks.get(t1.ref);
     await storage.tasks.update(t1.ref, { description: 'Now with new words' }, task.version, 'martin');
-    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toEqual({
+    expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toMatchObject({
       docs: 4,
       embedded: 1,
+      complete: true,
     });
     // The superseded vector is pruned: 4 live entries, not 5.
     expect(cache.entries.size).toBe(4);
@@ -340,7 +343,7 @@ describe('documentsFor and rebuildIndex', () => {
     };
     const store = { load: async () => undefined, save: async () => {} };
     const res = await rebuildIndex({ storage, embedder: counting, store, cache: new MemoryVectorCache() });
-    expect(res).toEqual({ docs: 151, embedded: 150 });
+    expect(res).toMatchObject({ docs: 151, embedded: 150, complete: true });
     expect(sizes).toEqual([64, 64, 22]);
   });
 });

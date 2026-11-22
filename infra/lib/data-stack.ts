@@ -59,8 +59,9 @@ export class DataStack extends cdk.Stack {
     });
     this.eventsQueue = new sqs.Queue(this, 'EventsQueue', {
       queueName: `purr-events-${deployEnv}`,
-      // Longer than the indexer's timeout, so a slow rebuild isn't redelivered mid-run.
-      visibilityTimeout: cdk.Duration.minutes(6),
+      // Longer than the indexer's 15-minute timeout, so a running rebuild is never
+      // redelivered to a second instance mid-run.
+      visibilityTimeout: cdk.Duration.minutes(16),
       retentionPeriod: cdk.Duration.days(4),
       enforceSSL: true,
       deadLetterQueue: { queue: dlq, maxReceiveCount: 5 },
