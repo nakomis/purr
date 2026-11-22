@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "description": "Purr's Lambda handlers: the HTTP API, the authoriser and the search indexer.",
   "dependencies": {
     "@purr/domain": "workspace:*",
@@ -14,5 +16,9 @@
     "@aws-sdk/client-s3": "^3.940.0",
     "aws-jwt-verify": "^5.2.1"
   },
-  "devDependencies": { "@purr/storage-memory": "workspace:*", "@purr/contracts": "workspace:*", "@types/aws-lambda": "^8.10.159" }
+  "devDependencies": {
+    "@purr/storage-memory": "workspace:*",
+    "@purr/contracts": "workspace:*",
+    "@types/aws-lambda": "^8.10.159"
+  }
 }

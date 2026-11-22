@@ -3,9 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": { "purr-mcp": "./src/index.ts" },
-  "exports": { ".": "./src/index.ts" },
+  "bin": {
+    "purr-mcp": "./src/index.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "description": "The Purr MCP server, for Claude: tools over the Purr API.",
-  "scripts": { "start": "tsx src/index.ts" },
-  "dependencies": { "@modelcontextprotocol/sdk": "^1.32.0", "zod": "^3.25.0", "tsx": "^4.20.0" }
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^3.25.0",
+    "tsx": "^4.20.0"
+  }
 }

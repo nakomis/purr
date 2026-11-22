@@ -2,7 +2,9 @@
   "name": "@purr/infra",
   "version": "0.1.0",
   "private": true,
-  "bin": { "purr": "bin/purr.js" },
+  "bin": {
+    "purr": "bin/purr.js"
+  },
   "scripts": {
     "build": "tsc --noEmit",
     "test": "jest --coverage",

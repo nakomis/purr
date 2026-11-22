@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "One-off importer from Plane (and ATC's schema) into Purr, through the domain's ports.",
-  "scripts": { "migrate": "tsx src/index.ts" },
+  "scripts": {
+    "migrate": "tsx src/index.ts"
+  },
   "dependencies": {
     "@purr/domain": "workspace:*",
     "@purr/storage-dynamo": "workspace:*",
@@ -13,5 +15,9 @@
     "turndown": "^7.2.0",
     "tsx": "^4.20.0"
   },
-  "devDependencies": { "@purr/storage-memory": "workspace:*", "@types/pg": "^8.15.0", "@types/turndown": "^5.0.5" }
+  "devDependencies": {
+    "@purr/storage-memory": "workspace:*",
+    "@types/pg": "^8.15.0",
+    "@types/turndown": "^5.0.5"
+  }
 }
