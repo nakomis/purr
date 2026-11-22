@@ -10,6 +10,8 @@ on:
 # Validate the post-merge state on PRs, not just the branch tip.
 env:
   CHECKOUT_REF: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/merge', github.event.pull_request.number) || github.sha }}
+  SANDBOX_ROLE: arn:aws:iam::975050268859:role/nakomis-purr-github-ci-sandbox
+  PROD_ROLE: arn:aws:iam::637423226886:role/nakomis-purr-github-ci-prod
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -60,17 +62,180 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - name: Storage boundary (dependency-cruiser)
+      - name: Storage boundary
         run: pnpm depcheck
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "25"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  infra:
+    name: Infra
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "25"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
 
   ci-status:
     name: CI Status
     runs-on: ubuntu-latest
     if: always()
-    needs: [test, lint]
+    needs: [test, lint, web, infra]
     steps:
       - name: Fail if any job failed
         run: |
-          for r in "${{ needs.test.result }}" "${{ needs.lint.result }}"; do
-            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "a job did not succeed: $r"; exit 1; fi
+          for r in "${{ needs.test.result }}" "${{ needs.lint.result }}" "${{ needs.web.result }}" "${{ needs.infra.result }}"; do
+            if [ "$r" != "success" ]; then echo "a job did not succeed: $r"; exit 1; fi
           done
+
+  # ── Release: one version per merge, shared by sandbox and prod ──────────────
+  # The bump comes from a line that is exactly --bump-major / --bump-minor in the
+  # merged commit message (patch otherwise); see nakomis-infra/.github/actions.
+  version:
+    name: Compute version
+    runs-on: ubuntu-latest
+    needs: [ci-status]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.SANDBOX_ROLE }}
+          aws-region: eu-west-2
+      - name: Compute version
+        id: version
+        uses: nakomis/nakomis-infra/.github/actions/compute-version@main
+        with:
+          project: purr
+          version-file: infra/version.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: version
+          path: infra/version.json
+
+  deploy-sandbox:
+    name: Deploy — sandbox
+    runs-on: ubuntu-latest
+    needs: [version]
+    environment: sandbox
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: version
+          path: infra
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "25"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.SANDBOX_ROLE }}
+          aws-region: eu-west-2
+      - name: Deploy infrastructure
+        working-directory: infra
+        run: pnpm run ci-deploy-sandbox
+      - name: Deploy web
+        run: bash scripts/deploy-web.sh sandbox
+      - name: Smoke test
+        run: curl -fsS https://purr.sandbox.nakomis.com/api/health
+      - name: Record deployment
+        uses: nakomis/nakomis-infra/.github/actions/record-deployment@main
+        with:
+          project: purr
+          environment: sandbox
+          version-file: infra/version.json
+
+  deploy-prod:
+    name: Deploy — production
+    runs-on: ubuntu-latest
+    needs: [version, deploy-sandbox]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: version
+          path: infra
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "25"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.PROD_ROLE }}
+          aws-region: eu-west-2
+      - name: Deploy infrastructure
+        working-directory: infra
+        run: pnpm run ci-deploy-prod
+      - name: Deploy web
+        run: bash scripts/deploy-web.sh prod
+      - name: Smoke test
+        run: curl -fsS https://purr.nakomis.com/api/health
+      - name: Record deployment
+        uses: nakomis/nakomis-infra/.github/actions/record-deployment@main
+        with:
+          project: purr
+          environment: prod
+          version-file: infra/version.json
