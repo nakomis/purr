@@ -8,7 +8,9 @@ and MP4 (1024 px) exports.
 | --- | --- | --- |
 | Run past | `purr-logo-2.*` | A mouse runs right to left along the wall; every cat's eyes follow it. 5 s loop. |
 | Tau grabs it | `purr-logo-2-grab-tau.*` | Tau lunges and catches the mouse, holds it wriggling crosswise in her jaws, gulps it in, slurps up the tail, swallows, and closes her eyes contentedly; the others look at Tau, then back to the front. 7 s. |
-| Kappa, Mu, Chi grab it | planned | Same script, a different cat (`grab.py 0`, `2`, `3`). |
+| Kappa grabs it | `purr-logo-2-grab-kappa.*` | The same story with Kappa (far left), so the mouse runs past all the others first. 7 s. |
+| Mu grabs it | `purr-logo-2-grab-mu.*` | The same story with Mu. 7 s. |
+| Chi grabs it | `purr-logo-2-grab-chi.*` | The same story with Chi (far right). 7 s. |
 
 ## Rebuilding
 
@@ -48,8 +50,11 @@ ffmpeg -i in.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -bf 0 -crf 18 -mo
   surrounding backdrop, and saves the front of the wall as a layer of its own.
 - **grab.py** puts the head in a symbol of its own, holding its pupils, closed
   eyelids, an open mouth with fangs, the held mouse (narrowing as it
-  passes between the teeth, so it looks gripped), the dangling tail and a tongue, all timed to the scene. The head's
-  lunge, shake, rise and swallow are keyed on the main timeline.
+  passes between the teeth, so it looks gripped), the dangling tail and a
+  tongue, all timed to the scene. The head's lunge, shake, rise and swallow are
+  keyed on the main timeline.
+- For Mu and Chi, nearest where the mouse comes in, it sets off a little later,
+  so their pounce gets the same build-up as the others'.
 - **ac.py** drives `anicraft-cli serve`, so the scripts can use the layer and
   symbol ids AniCraft hands back.
 

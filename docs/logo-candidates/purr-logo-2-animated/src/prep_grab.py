@@ -16,10 +16,10 @@ from PIL import Image
 from scipy import ndimage as nd
 
 CATS = [  # left to right; box = the column band the head may occupy
-    dict(name='Kappa', box=(30, 470, 300, 688), mouth=(172, 668)),
+    dict(name='Kappa', box=(30, 470, 300, 688), mouth=(174, 663)),
     dict(name='Tau',   box=(298, 485, 515, 688), mouth=(403, 670)),
-    dict(name='Mu',    box=(510, 485, 742, 688), mouth=(625, 668)),
-    dict(name='Chi',   box=(737, 460, 995, 688), mouth=(860, 668)),
+    dict(name='Mu',    box=(510, 485, 742, 688), mouth=(625, 664)),
+    dict(name='Chi',   box=(737, 460, 995, 688), mouth=(860, 667)),
 ]
 WALL = 688
 EXT = 40
@@ -39,6 +39,18 @@ lab, n = nd.label(nd.binary_dilation(solid, iterations=1))
 sizes = nd.sum(np.ones_like(lab), lab, range(1, n + 1))
 keep = lab == (1 + int(np.argmax(sizes)))
 alpha *= nd.binary_dilation(keep, iterations=1)
+# Everything inside the head's outline is solid, even fur close to the backdrop
+# colour (Mu's cream patches would otherwise come out see-through). The bottom
+# row is closed off first so the fill has a boundary there.
+outline = nd.binary_closing(keep, iterations=2)
+outline[-1] = outline[-1] | nd.binary_dilation(keep[-1], iterations=20)
+interior = nd.binary_erosion(nd.binary_fill_holes(outline), iterations=1)
+alpha = np.maximum(alpha, interior)
+# ...and the bottom rows, where the head meets the wall, are solid edge to edge
+for r in range(1, 13):
+    cols = np.nonzero(nd.binary_opening(keep[-r], np.ones(7)))[0]   # body, not whisker tips
+    if len(cols):
+        alpha[-r, cols.min():cols.max() + 1] = 1
 
 # --- the neck: the bottom rows, median-smoothed sideways so whiskers don't
 # streak, repeated downwards

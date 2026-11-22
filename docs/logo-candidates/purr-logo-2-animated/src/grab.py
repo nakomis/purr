@@ -38,6 +38,16 @@ eyes, cats = load_eyes()
 mx0, my0 = meta['mouth']
 PX, PY = mx0, meta['wall']                      # head pivot: base of the head, under the mouth
 G = round(frame_at_nose(mx0 - 27.5 * MOUSE_SCALE / 100))   # the jaws close with the mouse's middle under the mouth
+# Cats nearer the mouse's entry would catch it almost as soon as it appears, so
+# for them the mouse sets off later, giving every grab the same build-up.
+DELAY = max(0, 48 - G)
+G += DELAY
+
+
+def mouse_x(t, _run=mouse_x):
+    return _run(t - DELAY)
+
+
 bg = np.asarray(Image.open('bg.png').convert('RGB')).astype(float)
 
 
@@ -124,7 +134,7 @@ def watcher_gaze(c_idx, t, L, R):
     gx = (cats[ci][0]['cx'] + cats[ci][1]['cx']) / 2
     at_grabber = math.tanh((gx - bx) / 90)
     b = smooth(G - 4, G + 1, t)
-    w = smooth(6, 15, t) * (1 - smooth(G + 77, G + 91, t))
+    w = smooth(6 + DELAY, 15 + DELAY, t) * (1 - smooth(G + 77, G + 91, t))
     g = (1 - b) * at_mouse + b * at_grabber
     return A * w * g, w * (1.8 * (1 - b) + 0.6 * b)
 
@@ -133,7 +143,7 @@ def grabber_gaze(t, L, R):
     """The grabber's own pupils: on the mouse until it is caught, then front."""
     bx = (L['cx'] + R['cx']) / 2
     A = gaze_amplitude(L, R)
-    w = smooth(6, 15, t) * (1 - smooth(G + 4, G + 12, t))
+    w = smooth(6 + DELAY, 15 + DELAY, t) * (1 - smooth(G + 4, G + 12, t))
     g = math.tanh((mouse_x(t - 2) + 25 - bx) / 170)
     return A * w * g, w * (1.8 + 1.5 * smooth(G - 6, G - 1, t))
 
@@ -364,7 +374,7 @@ ac('layer.select', layer=mouse)
 ac('timeline.create_motion_tween', frame=0)
 ac('motion.set_key', layer=mouse, property='scale_x', value=MOUSE_SCALE, frame=0)
 ac('motion.set_key', layer=mouse, property='scale_y', value=MOUSE_SCALE, frame=0)
-for f in (0, MOUSE_IN, G - 1):
+for f in (0, MOUSE_IN + DELAY, G - 1):
     ac('motion.set_key', layer=mouse, property='x', value=round(mouse_x(f), 1), frame=f)
     ac('motion.set_key', layer=mouse, property='y', value=WALL, frame=f)
 ac('layer.select', layer=mouse)
