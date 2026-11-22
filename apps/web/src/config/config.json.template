@@ -1,0 +1,8 @@
+{
+  "apiBase": "/api",
+  "authority": "<AUTHORITY>",
+  "clientId": "<CLIENT_ID>",
+  "redirectUri": "<REDIRECT_URI>",
+  "logoutUri": "<LOGOUT_URI>",
+  "cognitoDomain": "<COGNITO_DOMAIN>"
+}

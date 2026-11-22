@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #fbf4e9;
+  --surface: #fffaf1;
+  --ink: #2c2622;
+  --muted: #7b6e62;
+  --line: #eadcc6;
+  --accent: #b9611f;
+  --accent-soft: #f6e2cb;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1a18;
+    --surface: #27231f;
+    --ink: #f1e7d8;
+    --muted: #a39484;
+    --line: #3a342d;
+    --accent: #e9a15f;
+    --accent-soft: #3d2f22;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-rounded, "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+}
+
+.prose-purr p,
+.prose-purr ul,
+.prose-purr ol,
+.prose-purr pre,
+.prose-purr blockquote,
+.prose-purr table {
+  margin: 0.6em 0;
+}
+.prose-purr ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose-purr ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose-purr h1,
+.prose-purr h2,
+.prose-purr h3 {
+  font-weight: 700;
+  margin: 1em 0 0.4em;
+}
+.prose-purr code {
+  background: var(--accent-soft);
+  border-radius: 0.25rem;
+  padding: 0.05em 0.3em;
+  font-size: 0.9em;
+}
+.prose-purr pre {
+  background: var(--accent-soft);
+  border-radius: 0.5rem;
+  padding: 0.75em;
+  overflow-x: auto;
+}
+.prose-purr pre code {
+  background: none;
+  padding: 0;
+}
+.prose-purr blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 0.8em;
+  color: var(--muted);
+}
+.prose-purr th,
+.prose-purr td {
+  border: 1px solid var(--line);
+  padding: 0.25em 0.6em;
+}
