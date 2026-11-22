@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { logoutUrl } from '../auth/oidc';
+import { Banner } from '../banner/Banner';
 import { getConfig } from '../config/config';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -66,12 +67,7 @@ function Footer() {
 export function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
-      <img
-        src="/banner.png"
-        alt="Four cats peeking over a ledge"
-        className="h-20 w-full object-cover sm:h-32"
-        style={{ objectPosition: 'center 35%' }}
-      />
+      <Banner />
       <header className="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur">
         <Link to="/" className="flex items-center gap-2 text-lg font-bold text-ink no-underline">
           <img src="/logo.png" alt="" width={32} height={32} className="rounded-md" />
