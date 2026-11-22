@@ -243,18 +243,25 @@ def tail_fn(frac):
 
 import re
 HELD_K = 1.2      # size of the held mouse in the head's space
-GAP = 6.5         # half-width of the mouth gap the mouse disappears into
+GAP = 9           # half-width of the open mouth: the mouse narrows inside it
+TAPER = 15        # how far either side of the gap the mouse narrows into the mouth
+
+# The open mouth: (frame, width, height) or None once it shuts. It opens as the
+# head lunges, stays open round the mouse, and closes in steps with the gulps.
+MOUTH = [(G - 3, 24, 16), (G, 26, 13), (G + 30, 24, 11), (G + 33, 20, 9), (G + 36, None, None)]
 
 
 def held_shapes(d, pose):
-    """The mouse held crosswise in the jaws by the scruff, limp at both ends.
-
-    `d` slides it towards the mouth as it is drawn in."""
-    xc = 28
+    """The mouse held crosswise in the jaws, limp at both ends, each half
+    narrowing as it goes into the mouth. `d` slides it in as it is gulped."""
+    xc, yc = 28, -16           # middle of the mouse's body, in its own drawing
 
     def tr(x, y):
+        u = (x - xc) * HELD_K - d                       # distance from the mouth centre
+        f = min(1, max(0, (abs(u) - GAP) / TAPER))
+        squeeze = 0.3 + 0.7 * f * f * (3 - 2 * f)       # gripped thin between the teeth
         droop = 0.022 * min((x - xc) ** 2, 34 ** 2)
-        return mrx + (x - xc) * HELD_K - d, mry + (y + 19 + droop) * HELD_K
+        return mrx + u, mry + (yc + (y - yc) * squeeze + 21 + droop) * HELD_K
 
     out = []
     for s in mouse_pose(*POSES[pose]):
@@ -276,8 +283,39 @@ def held_fn(d, pose):
     return (lambda: draw_shapes(ac, held_shapes(d, pose))) if d is not None else None
 
 
+def mouth_top():
+    return mry - 1.5
+
+
+def mouth_fn(w, h, teeth=False):
+    """The open mouth (dark, a hint of tongue) or, with teeth=True, just its
+    fangs, which go on top of the mouse so they look to be biting it."""
+    if w is None:
+        return None
+    t = mouth_top()
+
+    def fn():
+        if teeth:
+            for sx in (-1, 1):
+                x = mrx + sx * w * 0.28
+                ac('draw.path', d=f'M{x - 2.2:.1f},{t:.1f} L{x + 2.2:.1f},{t:.1f} L{x:.1f},{t + min(5, h * 0.45):.1f} Z',
+                   fill='#fbf7ee', stroke=None)
+                xb, b = mrx + sx * w * 0.2, t + h * 0.92        # lower fangs, pointing up
+                ac('draw.path', d=f'M{xb - 1.8:.1f},{b:.1f} L{xb + 1.8:.1f},{b:.1f} L{xb:.1f},{b - min(4, h * 0.35):.1f} Z',
+                   fill='#fbf7ee', stroke=None)
+            return
+        ac('draw.path', d=(f'M{mrx - w/2:.1f},{t:.1f} C{mrx - w/2:.1f},{t + h*1.25:.1f} {mrx + w/2:.1f},{t + h*1.25:.1f} {mrx + w/2:.1f},{t:.1f} '
+                           f'C{mrx + w/4:.1f},{t - 2.5:.1f} {mrx - w/4:.1f},{t - 2.5:.1f} {mrx - w/2:.1f},{t:.1f} Z'),
+           fill='#3b1e21', stroke=None)
+        ac('draw.ellipse', x=mrx - w * 0.28, y=t + h * 0.45, w=w * 0.56, h=h * 0.42, fill='#b8636b', stroke=None)
+    return fn
+
+
+keyed_layer('Mouth (open)', [(f, mouth_fn(w, h)) for f, w, h in MOUTH])
 held = keyed_layer('Mouse in mouth', [(f, held_fn(sx, p)) for f, sx, p in HELD])
-LEFT, RIGHT = (mrx - 90, mrx - GAP), (mrx + GAP, mrx + 100)
+# the mask hides nothing while the mouse is held; after the first gulp it hides
+# the head end, which has gone into the mouth
+WHOLE, RIGHT = (mrx - 90, mrx + 100), (mrx - 1, mrx + 100)
 
 
 def gap_rects(*sides):
@@ -287,9 +325,10 @@ def gap_rects(*sides):
     return fn
 
 
-gap = keyed_layer('Mouth gap (mask)', [(0, gap_rects(LEFT, RIGHT)), (FRONT_GONE, gap_rects(RIGHT))])
+gap = keyed_layer('Mouth (mask)', [(0, gap_rects(WHOLE)), (FRONT_GONE, gap_rects(RIGHT))])
 ac('layer.set_type', type='mask', layer=gap)
 ac('layer.set_type', type='masked', layer=held)
+keyed_layer('Fangs', [(f, mouth_fn(w, h, teeth=True)) for f, w, h in MOUTH])
 
 keyed_layer('Tail',[(TAIL_FULL[0], tail_fn(1.0))] + [(f, tail_fn(fr) if fr else None) for f, fr in SLURP])
 

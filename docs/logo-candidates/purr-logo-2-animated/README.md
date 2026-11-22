@@ -47,8 +47,8 @@ ffmpeg -i in.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -bf 0 -crf 18 -mo
   below the wall line so it can rise), fills the hole behind it from the
   surrounding backdrop, and saves the front of the wall as a layer of its own.
 - **grab.py** puts the head in a symbol of its own, holding its pupils, closed
-  eyelids, the held mouse (clipped by a mask with a gap at the mouth, so it
-  looks clamped in the jaws), the dangling tail and a tongue, all timed to the scene. The head's
+  eyelids, an open mouth with fangs, the held mouse (narrowing as it
+  passes between the teeth, so it looks gripped), the dangling tail and a tongue, all timed to the scene. The head's
   lunge, shake, rise and swallow are keyed on the main timeline.
 - **ac.py** drives `anicraft-cli serve`, so the scripts can use the layer and
   symbol ids AniCraft hands back.
