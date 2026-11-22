@@ -25,6 +25,8 @@ export const newApiKey = (): string => randomBytes(32).toString('base64url');
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
+    // pnpm passes a literal "--" through to the script.
+    args: process.argv.slice(2).filter((a) => a !== '--'),
     options: {
       env: { type: 'string' },
       actor: { type: 'string' },
