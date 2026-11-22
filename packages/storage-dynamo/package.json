@@ -1,0 +1,10 @@
+{
+  "name": "@purr/storage-dynamo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "description": "DynamoDB implementation of Purr's storage ports.",
+  "dependencies": { "@purr/domain": "workspace:*", "@aws-sdk/client-dynamodb": "^3.940.0", "@aws-sdk/lib-dynamodb": "^3.940.0" },
+  "devDependencies": { "@purr/contracts": "workspace:*" }
+}
