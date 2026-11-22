@@ -5,7 +5,8 @@
   "type": "module",
   "description": "One-off importer from Plane (and ATC's schema) into Purr, through the domain's ports.",
   "scripts": {
-    "migrate": "tsx src/index.ts"
+    "migrate": "tsx src/index.ts",
+    "seed-key": "tsx src/seed-api-key.ts"
   },
   "dependencies": {
     "@purr/domain": "workspace:*",
