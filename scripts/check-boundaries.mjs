@@ -14,7 +14,7 @@ import { join, relative } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SCAN = ['packages', 'apps', 'tools', 'infra'];
-const SKIP = new Set(['node_modules', 'dist', 'coverage', 'cdk.out']);
+const SKIP = new Set(['node_modules', 'dist', 'coverage', 'cdk.out', '.claude']);
 const IMPORT =
   /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|require\(\s*['"]([^'"]+)['"]\s*\)/g;
 
