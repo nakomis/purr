@@ -1,5 +1,5 @@
 /**
- * Issue an API key for an agent (claude or bau).
+ * Issue an API key for an agent: claude, bau, or purr3d (the Purr3D game).
  *
  *   AWS_PROFILE=nakom.is-sandbox pnpm --filter @purr/migrate-plane seed-key -- --env sandbox --actor claude
  *
@@ -23,6 +23,16 @@ export const hashApiKey = (key: string): string => createHash('sha256').update(k
 /** 43 URL-safe characters (256 bits), which auth.ts's format check accepts. */
 export const newApiKey = (): string => randomBytes(32).toString('base64url');
 
+/** The actors that authenticate by API key. martin signs in through Cognito; system is internal. */
+const KEY_ACTORS: readonly Actor[] = ACTORS.filter((a) => a !== 'martin' && a !== 'system');
+
+/** Validates --actor: only agents get API keys. */
+export function agentActor(value: string | undefined): Actor {
+  const actor = KEY_ACTORS.find((a) => a === value);
+  if (!actor) throw new Error('--actor must be an agent: claude, bau or purr3d');
+  return actor;
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     // pnpm passes a literal "--" through to the script.
@@ -36,10 +46,7 @@ async function main(): Promise<void> {
   });
   const env = values.env;
   if (env !== 'sandbox' && env !== 'prod') throw new Error('--env must be sandbox or prod');
-  const actor = values.actor as Actor;
-  if (!ACTORS.includes(actor) || actor === 'martin' || actor === 'system') {
-    throw new Error('--actor must be an agent: claude or bau');
-  }
+  const actor = agentActor(values.actor);
   const tableName = values.table ?? `purr-${env}`;
   const key = newApiKey();
   const name = `/purr/${env}/api-keys/${actor}`;

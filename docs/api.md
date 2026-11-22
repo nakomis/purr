@@ -10,7 +10,7 @@ and the MCP server build against. Types (`Task`, `Project`, `Epic`, `Comment`, `
 Every route except `GET /api/health` needs one of:
 
 - `Authorization: Bearer <Cognito ID token>` (the web UI; the shared pool, Purr's own client). Actor `martin`.
-- `x-api-key: <key>` (agents). Each key maps to one actor (`claude`, `bau`).
+- `x-api-key: <key>` (agents). Each key maps to one actor (`claude`, `bau`, or `purr3d` for the [Purr3D](https://github.com/nakomis/purr3d) game).
 
 Missing or invalid credentials: `401 {"error":{"code":"UNAUTHORISED","message":"..."}}`.
 

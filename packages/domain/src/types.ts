@@ -3,13 +3,13 @@
 export type TaskRef = string; // "HOME-42": `${prefix}-${sequence}`
 export type EpicRef = string; // "EPIC-7"
 export type Rank = string; // lexicographic; see rank.ts
-export type Actor = 'martin' | 'claude' | 'bau' | 'system';
+export type Actor = 'martin' | 'claude' | 'bau' | 'purr3d' | 'system';
 export type StateGroup = 'backlog' | 'unstarted' | 'started' | 'completed' | 'cancelled';
 export type Column = 'backlog' | 'up_next' | 'in_progress';
 export type Priority = 'none' | 'low' | 'medium' | 'high' | 'urgent';
 export type RelationType = 'blocks' | 'blocked_by' | 'relates_to' | 'duplicate_of';
 
-export const ACTORS: readonly Actor[] = ['martin', 'claude', 'bau', 'system'];
+export const ACTORS: readonly Actor[] = ['martin', 'claude', 'bau', 'purr3d', 'system'];
 export const STATE_GROUPS: readonly StateGroup[] = [
   'backlog',
   'unstarted',
