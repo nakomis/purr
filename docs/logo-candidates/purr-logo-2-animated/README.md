@@ -30,6 +30,13 @@ python3 grab.py 1 grab-tau.anicraft
 Export with AniCraft (`file.export_video`, `file.export_gif`), or open the
 `.anicraft` in the app and use File ▸ Export.
 
+AniCraft's MP4s use B-frames with the index at the end, which some players
+show as a still picture. Re-encode them for wide compatibility:
+
+```sh
+ffmpeg -i in.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -bf 0 -crf 18 -movflags +faststart -an out.mp4
+```
+
 ## How the pieces fit
 
 - **prep.py** finds the eight irises, paints the original slit pupils out, and
