@@ -17,14 +17,15 @@ The server exits with a clear message if either is missing. API errors (`{error:
 
 ## Registering it in meta-mcp
 
-Add a block to `~/repos/nakomis/mcps/meta-mcp/config.toml` (gitignored), adjusting the secret as needed:
+`purr-mcp-launch.sh` reads the key from the macOS login keychain (service `purr`, account `claude-api-key`;
+the script's header shows how to load it from SSM), so no secret sits in meta-mcp's config. Add a block to
+`~/repos/nakomis/mcps/meta-mcp/config.toml` (gitignored):
 
 ```toml
 [[mcps]]
 name = "purr"
 description = "Purr project management (purr.nakomis.com; replaced Plane)"
-command = ["pnpm", "--dir", "/Users/martinmu_1/repos/nakomis/purr/apps/mcp", "start"]
-env = {PURR_URL = "https://purr.nakomis.com", PURR_API_KEY = "..."}
+command = ["/Users/martinmu_1/repos/nakomis/purr/apps/mcp/purr-mcp-launch.sh"]
 ```
 
 Then `call_mcp(name="purr", tool="pick_up", args={"ref": "HOME-42"})`. The `/start-purr` skill in `skills/start-purr` drives this.
