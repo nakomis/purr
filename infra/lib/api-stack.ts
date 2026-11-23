@@ -28,7 +28,7 @@ const EMBEDDING_MODEL = 'amazon.titan-embed-text-v2:0';
 
 /**
  * The HTTP API (one Lambda routing every /api path, authenticating in-process) and
- * the search indexer (an SQS-fed Lambda that rebuilds the index snapshot). Both run
+ * the search indexer (a Lambda that rebuilds the index snapshot, nightly and on demand). Both run
  * outside any VPC, so there is no NAT gateway to pay for.
  */
 export class ApiStack extends cdk.Stack {
@@ -136,7 +136,7 @@ export class ApiStack extends cdk.Stack {
       createDefaultStage: true,
     });
 
-    // Alarms: errors in either function, anything in the dead-letter queue's source backing up.
+    // Alarms: errors in either function.
     new cloudwatch.Alarm(this, 'ApiErrors', {
       alarmName: `purr-api-errors-${deployEnv}`,
       metric: apiFn.metricErrors({ period: cdk.Duration.minutes(5) }),
