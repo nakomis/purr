@@ -304,6 +304,22 @@ export const TOOLS: ToolDef[] = [
   ),
 
   tool(
+    'create_project',
+    "Create a project. `prefix` becomes every task ref's prefix (HOME → HOME-1): 2–12 capital letters or digits, starting with a letter. Without `states`, it gets the default workflow (Backlog, Todo, In progress, Done, Cancelled).",
+    {
+      prefix: z.string().min(1).describe('Ref prefix, e.g. HOME'),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      labels: z.array(z.string()).optional(),
+      icon: z.string().optional().describe('Icon filename under /icons, e.g. home.png'),
+    },
+    async (c, a) => {
+      const p = await c.post<Project>('/projects', a);
+      return `Created project ${p.prefix}: ${p.name}`;
+    },
+  ),
+
+  tool(
     'list_epics',
     'List epics (cross-project groupings of tasks). With `project`, only epics flagged on that project. Archived ones are hidden unless asked for.',
     { project: z.string().optional().describe('Project prefix'), include_archived: z.boolean().optional() },

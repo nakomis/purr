@@ -369,6 +369,13 @@ const cases: Case[] = [
     output: /# EPIC-7: Cutover[\s\S]*Projects: HOME[\s\S]*HOME-42/,
   },
   {
+    tool: 'create_project',
+    args: { prefix: 'PURR', name: 'Purr', description: 'The tracker' },
+    routes: { 'POST /projects': { id: 'p9', prefix: 'PURR', name: 'Purr' } },
+    expect: [['POST', '/projects', { prefix: 'PURR', name: 'Purr', description: 'The tracker' }]],
+    output: /Created project PURR: Purr/,
+  },
+  {
     tool: 'create_epic',
     args: { name: 'Cutover', projects: ['HOME'] },
     routes: { 'POST /epics': epic },
