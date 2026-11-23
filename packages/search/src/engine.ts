@@ -29,7 +29,12 @@ interface Ranked {
   score: number;
 }
 
-export function createSearchIndex(opts: SearchIndexOptions): SearchIndex {
+export interface ReloadableSearchIndex extends SearchIndex {
+  /** Forget the loaded snapshot, so the next query reloads it (after a newer build). */
+  invalidate(): void;
+}
+
+export function createSearchIndex(opts: SearchIndexOptions): ReloadableSearchIndex {
   const cacheMs = opts.cacheMs ?? 60_000;
   let cached: { at: number; loaded: Loaded | undefined } | undefined;
   let inflight: Promise<Loaded | undefined> | undefined;
@@ -59,6 +64,10 @@ export function createSearchIndex(opts: SearchIndexOptions): SearchIndex {
   };
 
   return {
+    invalidate() {
+      cached = undefined;
+    },
+
     async query(q: SearchQuery): Promise<SearchHit[]> {
       const text = q.text.trim();
       if (!text) return [];

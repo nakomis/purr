@@ -18,7 +18,6 @@ const api = new ApiStack(app, 'Api', {
   version: '1.2.3',
   table: data.table,
   dataBucket: data.bucket,
-  eventsQueue: data.eventsQueue,
   userPoolId: auth.userPoolId,
   userPoolClientId: auth.clientId,
 });
@@ -90,10 +89,21 @@ describe('ApiStack', () => {
       FunctionName: 'purr-indexer-sandbox',
       ReservedConcurrentExecutions: 1,
     });
-    tpl.hasResourceProperties('AWS::Lambda::EventSourceMapping', {
-      MaximumBatchingWindowInSeconds: 60,
-      FunctionResponseTypes: ['ReportBatchItemFailures'],
+  });
+
+  it('rebuilds the index on demand and nightly, not from a queue', () => {
+    const t = Template.fromStack(api);
+    t.resourceCountIs('AWS::Lambda::EventSourceMapping', 0);
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'purr-api-sandbox',
+      Environment: { Variables: Match.objectLike({ INDEXER_FUNCTION_NAME: Match.anyValue() }) },
     });
+    t.hasResourceProperties('AWS::Scheduler::Schedule', {
+      ScheduleExpression: 'cron(5 0 * * ? *)',
+      ScheduleExpressionTimezone: 'Europe/London',
+    });
+    const policies = JSON.stringify(t.findResources('AWS::IAM::Policy'));
+    expect(policies).toContain('lambda:InvokeFunction');
   });
 
   it('may invoke only the Titan embedding model', () => {

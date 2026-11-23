@@ -375,6 +375,36 @@ describe('search', () => {
     expect((await call('GET', '/api/search?q=x&kind=dog')).status).toBe(400);
   });
 
+  it('asks for an index fresh to upUntil: midnight London by default, now, or a given time', async () => {
+    const ensure = vi.fn(async (upUntil: string) => ({
+      indexedUntil: '2026-11-23T00:05:00.000Z',
+      fresh: upUntil < '2026-11-23T01:00:00Z',
+    }));
+    router = buildRouter({
+      services: createServices(storage, nullPublisher),
+      storage,
+      search,
+      freshness: { ensure },
+      now: () => new Date('2026-11-23T15:00:00Z'),
+      version: 'x',
+    });
+    const byDefault = await call('GET', '/api/search?q=sd');
+    expect(ensure).toHaveBeenLastCalledWith('2026-11-23T00:00:00.000Z');
+    expect(byDefault.body).toMatchObject({
+      upUntil: '2026-11-23T00:00:00.000Z',
+      indexedUntil: '2026-11-23T00:05:00.000Z',
+      fresh: true,
+    });
+    const now = await call('GET', '/api/search?q=sd&upUntil=now');
+    expect(ensure).toHaveBeenLastCalledWith('2026-11-23T15:00:00.000Z');
+    expect(now.body.fresh).toBe(false);
+    await call('GET', '/api/search?q=sd&upUntil=2026-11-20T12:00:00Z');
+    expect(ensure).toHaveBeenLastCalledWith('2026-11-20T12:00:00.000Z');
+    await call('GET', '/api/search?q=sd&upUntil=2030-01-01T00:00:00Z');
+    expect(ensure).toHaveBeenLastCalledWith('2026-11-23T15:00:00.000Z');
+    expect((await call('GET', '/api/search?q=sd&upUntil=yesterdayish')).status).toBe(400);
+  });
+
   it('returns no hits when search is not configured', async () => {
     router = buildRouter({ services: createServices(storage, nullPublisher), storage, version: 'x' });
     expect((await call('GET', '/api/search?q=anything')).body).toEqual({ items: [] });

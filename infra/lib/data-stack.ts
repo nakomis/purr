@@ -57,6 +57,9 @@ export class DataStack extends cdk.Stack {
       retentionPeriod: cdk.Duration.days(14),
       enforceSSL: true,
     });
+    // No longer used: the search index is rebuilt nightly and on demand. Kept, with
+    // its exports, for one deploy so the API stack can drop its imports first; the
+    // next change removes it.
     this.eventsQueue = new sqs.Queue(this, 'EventsQueue', {
       queueName: `purr-events-${deployEnv}`,
       // Longer than the indexer's 15-minute timeout, so a running rebuild is never
@@ -66,6 +69,8 @@ export class DataStack extends cdk.Stack {
       enforceSSL: true,
       deadLetterQueue: { queue: dlq, maxReceiveCount: 5 },
     });
+    this.exportValue(this.eventsQueue.queueArn);
+    this.exportValue(this.eventsQueue.queueUrl);
 
     new cdk.CfnOutput(this, 'TableName', { value: this.table.tableName });
     new cdk.CfnOutput(this, 'DataBucketName', { value: this.bucket.bucketName });

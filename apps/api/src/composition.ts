@@ -3,25 +3,27 @@
  * handlers so each piece is created once per warm instance, and so the only place
  * that names DynamoDB, S3 or Bedrock in the API is here.
  */
-import {
-  createServices,
-  type EventPublisher,
-  nullPublisher,
-  type SearchIndex,
-  type Storage,
-} from '@purr/domain';
+import { LambdaClient } from '@aws-sdk/client-lambda';
+import { createServices, nullPublisher, type SearchIndex, type Storage } from '@purr/domain';
 import { createBedrockEmbedder } from '@purr/embedder-bedrock';
-import { createSearchIndex, S3SnapshotStore, S3VectorCache } from '@purr/search';
+import {
+  createFreshness,
+  createSearchIndex,
+  type Freshness,
+  S3SnapshotStore,
+  S3VectorCache,
+} from '@purr/search';
 import { createDynamoStorage } from '@purr/storage-dynamo';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import type { AuthDeps } from './auth.js';
+import { indexerRebuilder } from './indexer-client.js';
 import { buildRouter } from './routes.js';
-import { SqsEventPublisher } from './sqs-publisher.js';
 
 export interface Env {
   TABLE_NAME: string;
   DATA_BUCKET: string;
-  EVENTS_QUEUE_URL?: string;
+  /** The indexer Lambda the API asks for a rebuild when a search needs a fresher index. */
+  INDEXER_FUNCTION_NAME?: string;
   USER_POOL_ID?: string;
   USER_POOL_CLIENT_ID?: string;
   ALLOWED_EMAILS?: string;
@@ -42,7 +44,7 @@ export function readEnv(env: NodeJS.ProcessEnv = process.env): Env {
   return {
     TABLE_NAME: need('TABLE_NAME'),
     DATA_BUCKET: need('DATA_BUCKET'),
-    EVENTS_QUEUE_URL: env.EVENTS_QUEUE_URL,
+    INDEXER_FUNCTION_NAME: env.INDEXER_FUNCTION_NAME,
     USER_POOL_ID: env.USER_POOL_ID,
     USER_POOL_CLIENT_ID: env.USER_POOL_CLIENT_ID,
     ALLOWED_EMAILS: env.ALLOWED_EMAILS,
@@ -64,9 +66,20 @@ export function makeEmbedder(env: Env) {
   });
 }
 
-export function makeSearch(env: Env): SearchIndex {
+/**
+ * The search index, and (with an indexer to call) the freshness check that rebuilds
+ * it on demand. A newer build than the one loaded makes the index reload it.
+ */
+export function makeSearch(env: Env): { search: SearchIndex; freshness?: Freshness } {
   const store = new S3SnapshotStore({ bucket: env.DATA_BUCKET });
-  return createSearchIndex({ load: () => store.load(), embedder: makeEmbedder(env) });
+  const search = createSearchIndex({ load: () => store.load(), embedder: makeEmbedder(env) });
+  if (!env.INDEXER_FUNCTION_NAME) return { search };
+  const freshness = createFreshness({
+    liveBuiltAt: () => store.builtAt(),
+    rebuild: indexerRebuilder(env.INDEXER_FUNCTION_NAME, new LambdaClient({})),
+    onNewer: () => search.invalidate(),
+  });
+  return { search, freshness };
 }
 
 export function makeVectorCache(env: Env): S3VectorCache {
@@ -79,13 +92,14 @@ export function makeSnapshotStore(env: Env): S3SnapshotStore {
 
 export function makeApi(env: Env) {
   const storage = makeStorage(env);
-  const events: EventPublisher = env.EVENTS_QUEUE_URL
-    ? new SqsEventPublisher(env.EVENTS_QUEUE_URL)
-    : nullPublisher;
+  // Writes publish nothing: the index is rebuilt nightly and on demand, when a
+  // search asks for something newer than the last build.
+  const { search, freshness } = makeSearch(env);
   const router = buildRouter({
-    services: createServices(storage, events),
+    services: createServices(storage, nullPublisher),
     storage,
-    search: makeSearch(env),
+    search,
+    ...(freshness ? { freshness } : {}),
     version: env.VERSION ?? 'unknown',
   });
   const verifier =

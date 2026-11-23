@@ -46,7 +46,6 @@ const api = new ApiStack(app, 'PurrApiStack', {
   version,
   table: data.table,
   dataBucket: data.bucket,
-  eventsQueue: data.eventsQueue,
   userPoolId: auth.userPoolId,
   userPoolClientId: auth.clientId,
   description: `Purr HTTP API, search indexer and their Lambdas (${deployEnv})`,

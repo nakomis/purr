@@ -27,7 +27,7 @@ A pnpm workspace (`packages/*`, `apps/*`, `tools/*`, `infra`). Internal packages
 - British English everywhere.
 - "Task" is the domain word (Plane called it a work item). Task refs `PREFIX-n`, epic refs `EPIC-n`.
 - Ranks are fractional strings (`packages/domain/src/rank.ts`): moving an item rewrites only that item.
-- Domain events drive search indexing (never DynamoDB Streams), and publishing is best-effort: a write never fails because the queue did.
+- Search indexing is pull, not push: the indexer runs nightly (00:05 London) and when a search asks for an index newer than the last build (`upUntil`, default midnight). Writes publish nothing, so a write can never leave the index silently behind. The snapshot's build time is in its S3 metadata (`built-at`), read with a HEAD; each API instance keeps the latest it has seen as a lower bound (`packages/search/src/freshness.ts`).
 
 ## Architecture diagrams
 

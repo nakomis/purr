@@ -4,18 +4,20 @@
  */
 import { createHash } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { dequantise, type QuantisedVector, quantise } from './quantise.js';
 import { parseSnapshot, type Snapshot, serialiseSnapshot } from './snapshot.js';
 
 /** The slice of S3Client the stores use. */
 export interface S3Like {
-  send(command: GetObjectCommand | PutObjectCommand): Promise<unknown>;
+  send(command: GetObjectCommand | PutObjectCommand | HeadObjectCommand): Promise<unknown>;
 }
 
 export interface SnapshotStore {
   load(): Promise<Snapshot | undefined>;
   save(snapshot: Snapshot): Promise<void>;
+  /** When the stored snapshot was built (ISO), read without fetching it; undefined if none or unrecorded. */
+  builtAt(): Promise<string | undefined>;
 }
 
 export interface VectorCache {
@@ -45,7 +47,13 @@ async function getBytes(client: S3Like, bucket: string, key: string): Promise<Ui
   }
 }
 
-async function putBytes(client: S3Like, bucket: string, key: string, body: Uint8Array): Promise<void> {
+async function putBytes(
+  client: S3Like,
+  bucket: string,
+  key: string,
+  body: Uint8Array,
+  metadata?: Record<string, string>,
+): Promise<void> {
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
@@ -53,9 +61,20 @@ async function putBytes(client: S3Like, bucket: string, key: string, body: Uint8
       Body: body,
       ContentType: 'application/gzip',
       CacheControl: 'no-store',
+      ...(metadata ? { Metadata: metadata } : {}),
     }),
   );
 }
+
+const isNotFound = (err: unknown): boolean => {
+  const e = err as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
+  return (
+    e.name === 'NoSuchKey' ||
+    e.name === 'NotFound' ||
+    e.Code === 'NoSuchKey' ||
+    e.$metadata?.httpStatusCode === 404
+  );
+};
 
 export class S3SnapshotStore implements SnapshotStore {
   private readonly client: S3Like;
@@ -75,7 +94,25 @@ export class S3SnapshotStore implements SnapshotStore {
   }
 
   async save(snapshot: Snapshot): Promise<void> {
-    await putBytes(this.client, this.bucket, this.key, serialiseSnapshot(snapshot));
+    await putBytes(
+      this.client,
+      this.bucket,
+      this.key,
+      serialiseSnapshot(snapshot),
+      snapshot.builtAt ? { 'built-at': snapshot.builtAt } : undefined,
+    );
+  }
+
+  async builtAt(): Promise<string | undefined> {
+    try {
+      const res = (await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: this.key }))) as {
+        Metadata?: Record<string, string>;
+      };
+      return res.Metadata?.['built-at'];
+    } catch (err) {
+      if (isNotFound(err)) return undefined;
+      throw err;
+    }
   }
 }
 
@@ -179,4 +216,21 @@ export function decodeEntries(bytes: Uint8Array): Map<string, QuantisedVector> {
     offset += header.dimensions;
   }
   return out;
+}
+
+/** A SnapshotStore in memory, for tests and local runs. */
+export class MemorySnapshotStore implements SnapshotStore {
+  saved: Snapshot | undefined;
+
+  async load(): Promise<Snapshot | undefined> {
+    return this.saved;
+  }
+
+  async save(snapshot: Snapshot): Promise<void> {
+    this.saved = snapshot;
+  }
+
+  async builtAt(): Promise<string | undefined> {
+    return this.saved?.builtAt;
+  }
 }

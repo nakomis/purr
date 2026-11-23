@@ -26,6 +26,7 @@ import {
   type Storage,
   type Task,
 } from '@purr/domain';
+import { type Freshness, startOfDayLondon } from '@purr/search';
 import {
   bodyObject,
   bool,
@@ -44,6 +45,10 @@ export interface RouteDeps {
   services: Services;
   storage: Storage;
   search?: SearchIndex;
+  /** Rebuilds the index on demand when a search needs it newer than the last build. */
+  freshness?: Pick<Freshness, 'ensure'>;
+  /** For the default upUntil; injectable for tests. */
+  now?: () => Date;
   version: string;
 }
 
@@ -453,7 +458,11 @@ export function buildRouter(deps: RouteDeps): Router {
     const projectId = req.query.project ? (await svc.projects.get(req.query.project)).id : undefined;
     const epicRef = req.query.epic ? normaliseEpicRef(req.query.epic) : undefined;
     const limit = limitParam(req.query.limit);
+    const upUntil = upUntilParam(req.query.upUntil, deps.now?.() ?? new Date());
     if (!deps.search) return ok({ items: [] });
+    // Most searches are for things from before today, so the default (midnight)
+    // is usually covered already and costs nothing; `now` may wait for a rebuild.
+    const freshness = deps.freshness ? await deps.freshness.ensure(upUntil) : undefined;
     const items = await deps.search.query({
       text,
       mode,
@@ -462,7 +471,12 @@ export function buildRouter(deps: RouteDeps): Router {
       ...(kinds.length ? { kinds } : {}),
       ...(limit ? { limit } : {}),
     });
-    return ok({ items });
+    return ok({
+      items,
+      upUntil,
+      ...(freshness?.indexedUntil ? { indexedUntil: freshness.indexedUntil } : {}),
+      ...(freshness ? { fresh: freshness.fresh } : {}),
+    });
   });
 
   return r;
@@ -476,4 +490,17 @@ function assigneeFilter(value: string): Assignee | 'none' {
   const v = value.toLowerCase();
   if (v === 'none' || (ASSIGNEES as readonly string[]).includes(v)) return v as Assignee | 'none';
   throw new HttpError(400, 'VALIDATION', `assignee must be none or one of ${ASSIGNEES.join(', ')}`);
+}
+
+/**
+ * `?upUntil=`: how recent the index must be. `now`, or an ISO date-time; by default
+ * midnight at the start of today, London time.
+ */
+function upUntilParam(value: string | undefined, now: Date): string {
+  if (!value) return startOfDayLondon(now);
+  if (value.toLowerCase() === 'now') return now.toISOString();
+  const t = Date.parse(value);
+  if (Number.isNaN(t)) throw new HttpError(400, 'VALIDATION', 'upUntil must be "now" or an ISO date-time');
+  if (t > now.getTime()) return now.toISOString();
+  return new Date(t).toISOString();
 }

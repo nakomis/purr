@@ -22,6 +22,11 @@ export interface Snapshot {
   index: object;
   vectors: Int8Array[];
   scales: number[];
+  /**
+   * When the rebuild started reading the data (ISO): the index holds everything
+   * written before this. Absent on snapshots from before it was recorded.
+   */
+  builtAt?: string;
 }
 
 /** The key under which a document's vector is looked up. */
@@ -38,6 +43,7 @@ export function buildSnapshot(
   vectors: Map<string, Float32Array>,
   model = '',
   dimensions = 0,
+  builtAt?: string,
 ): Snapshot {
   const ms = new MiniSearch(MINISEARCH_OPTIONS);
   ms.addAll(docs.map((d, n) => ({ n, title: d.title, text: d.text })));
@@ -54,6 +60,7 @@ export function buildSnapshot(
     index: ms.toJSON() as unknown as object,
     vectors: qs.map((q) => q.values),
     scales: qs.map((q) => q.scale),
+    ...(builtAt ? { builtAt } : {}),
   };
 }
 
@@ -66,6 +73,7 @@ export function serialiseSnapshot(s: Snapshot): Uint8Array {
       docs: s.docs,
       index: s.index,
       scales: s.scales,
+      ...(s.builtAt ? { builtAt: s.builtAt } : {}),
     }),
   );
   const body = Buffer.alloc(4 + header.length + s.vectors.length * s.dimensions);
