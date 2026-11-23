@@ -145,6 +145,21 @@ export function runStorageContract(name: string, make: () => Promise<Storage>): 
         expect((await s.tasks.get('HOME-1')).title).toBe('by claude');
       });
 
+      it('stores, filters by and clears the assignee', async () => {
+        await s.tasks.create({ projectId: home, title: 'a', assignee: 'bau' }, 'claude');
+        await s.tasks.create({ projectId: home, title: 'b' }, 'claude');
+        expect((await s.tasks.get('HOME-1')).assignee).toBe('bau');
+        expect((await s.tasks.listByProject(home, { assignee: 'bau' })).items.map((t) => t.ref)).toEqual([
+          'HOME-1',
+        ]);
+        expect((await s.tasks.listByProject(home, { assignee: 'none' })).items.map((t) => t.ref)).toEqual([
+          'HOME-2',
+        ]);
+        const t = await s.tasks.update('HOME-1', { assignee: undefined }, 1, 'claude');
+        expect(t.assignee).toBeUndefined();
+        expect((await s.tasks.get('HOME-1')).assignee).toBeUndefined();
+      });
+
       it('update can clear the parent and the points', async () => {
         await s.tasks.create({ projectId: home, title: 'p' }, 'claude');
         await s.tasks.create({ projectId: home, title: 'c', parent: 'HOME-1', points: 3 }, 'claude');

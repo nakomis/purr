@@ -32,7 +32,7 @@ Then `call_mcp(name="purr", tool="pick_up", args={"ref": "HOME-42"})`. The `/sta
 
 ## Tools
 
-Tasks: `get_task`, `list_tasks`, `create_task`, `update_task`, `pick_up`, `set_state`, `add_comment`, `set_points`, `add_label`, `remove_label`, `add_link`, `remove_link`, `add_relation`, `remove_relation`, `set_parent`.
+Tasks: `get_task`, `list_tasks`, `create_task`, `update_task`, `pick_up`, `set_state`, `add_comment`, `set_assignee`, `set_points`, `add_label`, `remove_label`, `add_link`, `remove_link`, `add_relation`, `remove_relation`, `set_parent`.
 Planning: `search`, `next`, `board`.
 Projects and epics: `list_projects`, `get_project`, `list_epics`, `get_epic`, `create_epic`, `update_epic`, `add_to_epic`, `remove_from_epic`, `flag_project_on_epic`.
 

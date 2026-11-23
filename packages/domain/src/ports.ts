@@ -12,6 +12,7 @@
 import type {
   Activity,
   Actor,
+  Assignee,
   BoardCard,
   Comment,
   Epic,
@@ -64,6 +65,7 @@ export interface NewTask {
   parent?: TaskRef;
   priority?: Priority;
   points?: number;
+  assignee?: Assignee;
   projectRank?: Rank;
   /** Migration only: keep Plane's numbering and timestamps. */
   sequence?: number;
@@ -72,12 +74,17 @@ export interface NewTask {
 }
 
 export type TaskPatch = Partial<
-  Pick<Task, 'title' | 'description' | 'stateId' | 'labels' | 'parent' | 'priority' | 'points' | 'links'>
+  Pick<
+    Task,
+    'title' | 'description' | 'stateId' | 'labels' | 'parent' | 'priority' | 'points' | 'assignee' | 'links'
+  >
 >;
 
 export interface TaskListOptions {
   stateIds?: string[];
   label?: string;
+  /** Only tasks assigned to this actor, or with 'none', only unassigned ones. */
+  assignee?: Assignee | 'none';
   limit?: number;
   cursor?: string;
 }

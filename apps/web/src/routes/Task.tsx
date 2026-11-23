@@ -50,6 +50,12 @@ export function TaskPage() {
                 <dd className="inline font-semibold">{formatPoints(task.points)}</dd>
               </div>
             )}
+            {task.assignee && (
+              <div>
+                <dt className="inline text-muted">Assignee </dt>
+                <dd className="inline font-semibold">{task.assignee}</dd>
+              </div>
+            )}
             {task.parent && (
               <div>
                 <dt className="inline text-muted">Parent </dt>

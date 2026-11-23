@@ -12,7 +12,11 @@ function pts(points: number | undefined | null): string {
 
 /** One line: `HOME-42 [In progress] (high, 3pt) Title #label`. */
 export function taskLine(t: Task, states?: Map<string, string>): string {
-  const bits = [t.priority && t.priority !== 'none' ? t.priority : '', pts(t.points)].filter(Boolean);
+  const bits = [
+    t.priority && t.priority !== 'none' ? t.priority : '',
+    pts(t.points),
+    t.assignee ? `@${t.assignee}` : '',
+  ].filter(Boolean);
   const state = states?.get(t.stateId);
   return [
     t.ref,
@@ -39,6 +43,7 @@ export function renderTaskDetail(t: TaskDetail): string {
   out.push(`- State: ${t.state.name} (${t.state.group})`);
   out.push(`- Priority: ${t.priority}`);
   out.push(`- Points: ${t.points ?? 'unestimated'}`);
+  out.push(`- Assignee: ${t.assignee ?? 'nobody'}`);
   out.push(`- Labels: ${t.labels.length > 0 ? t.labels.join(', ') : 'none'}`);
   if (t.parent) out.push(`- Parent: ${t.parent}`);
   out.push(`- Version: ${t.version}`);

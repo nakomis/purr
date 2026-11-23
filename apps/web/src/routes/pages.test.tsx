@@ -56,7 +56,7 @@ describe('projects', () => {
       '/api/projects/HOME/tasks': {
         items: [
           task({ ref: 'HOME-1', labels: ['infra'], points: 2 }),
-          task({ ref: 'HOME-2', stateId: 's-doing' }),
+          task({ ref: 'HOME-2', stateId: 's-doing', assignee: 'bau' }),
           task({ ref: 'HOME-3', stateId: 's-done' }),
         ],
       },
@@ -64,6 +64,7 @@ describe('projects', () => {
     renderAt('/projects/HOME');
     expect(await screen.findByText('HOME-1')).toBeInTheDocument();
     expect(screen.getByText('infra')).toBeInTheDocument();
+    expect(screen.getByTitle('Assigned to bau')).toHaveTextContent('@bau');
     expect(screen.getByText(/^In progress/, { selector: 'summary' })).toBeInTheDocument();
     expect(screen.getByText(/^Done/, { selector: 'summary' })).toBeInTheDocument();
   });

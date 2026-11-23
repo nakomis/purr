@@ -229,6 +229,19 @@ const cases: Case[] = [
     output: /c9/,
   },
   {
+    tool: 'set_assignee',
+    args: { ref: 'HOME-42', assignee: 'bau' },
+    routes: { 'PUT /tasks/HOME-42/assignee': task({ assignee: 'bau' }) },
+    expect: [['PUT', '/tasks/HOME-42/assignee', { assignee: 'bau' }]],
+    output: /HOME-42.*@bau/,
+  },
+  {
+    tool: 'set_assignee',
+    args: { ref: 'HOME-42', assignee: null },
+    routes: { 'PUT /tasks/HOME-42/assignee': task() },
+    expect: [['PUT', '/tasks/HOME-42/assignee', { assignee: null }]],
+  },
+  {
     tool: 'set_points',
     args: { ref: 'HOME-42', points: null },
     routes: { 'PUT /tasks/HOME-42/points': task({ points: undefined }) },

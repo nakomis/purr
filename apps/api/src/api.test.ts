@@ -227,6 +227,31 @@ describe('projects and tasks', () => {
     expect((await call('GET', '/api/tasks/HOME-1')).body.children).toHaveLength(1);
   });
 
+  it('assigns, filters by and unassigns tasks', async () => {
+    await call('POST', '/api/projects/HOME/tasks', { title: 'a', assignee: 'bau' });
+    await call('POST', '/api/projects/HOME/tasks', { title: 'b' });
+    expect((await call('GET', '/api/tasks/HOME-1')).body.assignee).toBe('bau');
+    const refs = async (q: string) =>
+      (await call('GET', `/api/projects/HOME/tasks?assignee=${q}`)).body.items.map(
+        (t: { ref: string }) => t.ref,
+      );
+    expect(await refs('bau')).toEqual(['HOME-1']);
+    expect(await refs('none')).toEqual(['HOME-2']);
+    expect((await call('GET', '/api/projects/HOME/tasks?assignee=nobody')).status).toBe(400);
+    expect((await call('PUT', '/api/tasks/HOME-2/assignee', { assignee: 'claude' })).body.assignee).toBe(
+      'claude',
+    );
+    expect(
+      (await call('PUT', '/api/tasks/HOME-1/assignee', { assignee: null })).body.assignee,
+    ).toBeUndefined();
+    expect((await call('PUT', '/api/tasks/HOME-1/assignee', { assignee: 'system' })).status).toBe(400);
+    expect((await call('PUT', '/api/tasks/HOME-1/assignee', {})).status).toBe(400);
+    const v = (await call('GET', '/api/tasks/HOME-2')).body.version;
+    expect(
+      (await call('PATCH', '/api/tasks/HOME-2', { version: v, assignee: null })).body.assignee,
+    ).toBeUndefined();
+  });
+
   it('reorders tasks within their project only', async () => {
     for (const t of ['a', 'b', 'c']) await call('POST', '/api/projects/HOME/tasks', { title: t });
     await call('POST', '/api/projects/CAT/tasks', { title: 'x' });

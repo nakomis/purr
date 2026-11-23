@@ -52,6 +52,7 @@ export interface Task {
   parent?: string;
   priority: Priority;
   points?: number;
+  assignee?: 'martin' | 'claude' | 'bau' | 'purr3d';
   links: Link[];
   relations: Relation[];
   epics: string[];

@@ -36,6 +36,7 @@ const ref = z.string().min(1).describe('Task ref, e.g. HOME-42 (case-insensitive
 const epicRef = z.string().min(1).describe('Epic ref, e.g. EPIC-7');
 const project = z.string().min(1).describe('Project prefix, e.g. HOME');
 const priority = z.enum(['none', 'low', 'medium', 'high', 'urgent']);
+const assignee = z.enum(['martin', 'claude', 'bau', 'purr3d']).describe('Who is working on it');
 const relationType = z.enum(['blocks', 'blocked_by', 'relates_to', 'duplicate_of']);
 
 const versionNote = 'Version conflicts are reported; re-run the tool to retry against the latest version.';
@@ -61,11 +62,12 @@ export const TOOLS: ToolDef[] = [
 
   tool(
     'list_tasks',
-    "List a project's tasks in project order, one line each with ref, state, priority, points and labels. Open tasks only by default; pass `all` to include completed and cancelled ones, or `state` (a state name) to select specific states. Optionally filter by label or epic.",
+    "List a project's tasks in project order, one line each with ref, state, priority, points and labels. Open tasks only by default; pass `all` to include completed and cancelled ones, or `state` (a state name) to select specific states. Optionally filter by label, epic or assignee (`none` for unassigned).",
     {
       project,
       state: z.string().optional().describe('State name (or id); comma-separate several'),
       label: z.string().optional(),
+      assignee: z.string().optional().describe('martin, claude, bau or purr3d; none for unassigned tasks'),
       epic: z.string().optional().describe("Epic ref, to list only that epic's members in this project"),
       all: z.boolean().optional().describe('Include completed and cancelled tasks'),
       limit: z
@@ -84,6 +86,7 @@ export const TOOLS: ToolDef[] = [
         const page: { items: Task[]; cursor?: string } = await c.get(`/projects/${seg(a.project)}/tasks`, {
           state: a.state,
           label: a.label,
+          assignee: a.assignee,
           epic: a.epic,
           all: a.all ? true : undefined,
           limit: Math.min(limit - items.length, 100),
@@ -110,6 +113,7 @@ export const TOOLS: ToolDef[] = [
       parent: z.string().optional().describe('Parent task ref'),
       priority: priority.optional(),
       points: z.number().int().nonnegative().optional().describe('Story points'),
+      assignee: assignee.optional(),
     },
     async (c, a) => {
       const { project: p, ...body } = a;
@@ -168,6 +172,16 @@ export const TOOLS: ToolDef[] = [
     async (c, a) => {
       const cm = await c.post<Comment>(`/tasks/${seg(a.ref)}/comments`, { body: a.body });
       return `Comment added to ${a.ref.toUpperCase()} (id ${cm.id}).`;
+    },
+  ),
+
+  tool(
+    'set_assignee',
+    'Assign a task to martin, claude, bau or purr3d, or pass null to unassign it. Works whatever the current version.',
+    { ref, assignee: assignee.nullable() },
+    async (c, a) => {
+      const t = await c.put<Task>(`/tasks/${seg(a.ref)}/assignee`, { assignee: a.assignee });
+      return `Updated ${taskLine(t)}`;
     },
   ),
 
