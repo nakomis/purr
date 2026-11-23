@@ -18,7 +18,8 @@ export const appDomain = (env: DeployEnv): string => `purr.${HOSTED_ZONES[env].z
  */
 export const ALLOWED_EMAILS: Record<DeployEnv, string[]> = {
   sandbox: ['sandboxuser@nakomis.com'],
-  prod: ['martin@nakomis.com'],
+  // Martin's prod Cognito user is 'nakomis', whose email is infra@nakomis.com.
+  prod: ['martin@nakomis.com', 'infra@nakomis.com'],
 };
 
 /** The GitHub repository CI deploys from: name and immutable ids (OIDC subjects carry both). */
