@@ -5,6 +5,7 @@ import { rankBefore } from '../rank.js';
 import { normaliseTaskRef } from '../refs.js';
 import type {
   Actor,
+  Assignee,
   Comment,
   Link,
   Priority,
@@ -14,7 +15,7 @@ import type {
   Task,
   TaskRef,
 } from '../types.js';
-import { PRIORITIES, RELATION_TYPES } from '../types.js';
+import { ASSIGNEES, PRIORITIES, RELATION_TYPES } from '../types.js';
 import { publish, type ServiceDeps, withRetry } from './common.js';
 
 export interface CreateTaskInput {
@@ -25,6 +26,7 @@ export interface CreateTaskInput {
   parent?: TaskRef;
   priority?: Priority;
   points?: number;
+  assignee?: Assignee;
 }
 
 /** Find a state by id, or by name case-insensitively. */
@@ -51,6 +53,12 @@ function validatePoints(points: number | undefined): void {
   }
 }
 
+function validateAssignee(assignee: string | undefined): void {
+  if (assignee !== undefined && !ASSIGNEES.includes(assignee as Assignee)) {
+    throw new ValidationError(`invalid assignee ${assignee}: one of ${ASSIGNEES.join(', ')}`);
+  }
+}
+
 function validatePriority(priority: Priority | undefined): void {
   if (priority !== undefined && !PRIORITIES.includes(priority)) {
     throw new ValidationError(`invalid priority ${priority}`);
@@ -72,6 +80,7 @@ export class TaskService {
     if (!input.title?.trim()) throw new ValidationError('a task needs a title');
     validatePoints(input.points);
     validatePriority(input.priority);
+    validateAssignee(input.assignee);
     const project = await this.storage.projects.get(prefix.toUpperCase());
     const state = input.state ? findState(project, input.state) : defaultState(project);
     const labels = await this.ensureLabels(project, input.labels ?? []);
@@ -86,6 +95,7 @@ export class TaskService {
       priority: input.priority ?? 'none',
       ...(parent ? { parent } : {}),
       ...(input.points !== undefined ? { points: input.points } : {}),
+      ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
     };
     const task = await this.storage.tasks.create(newTask, actor);
     await publish(this.deps, [{ type: 'TaskChanged', ref: task.ref }]);
@@ -108,6 +118,7 @@ export class TaskService {
     }
     validatePoints(rest.points);
     validatePriority(rest.priority);
+    validateAssignee(rest.assignee);
     if (state !== undefined) change.stateId = findState(project, state).id;
     if (rest.labels) change.labels = await this.ensureLabels(project, rest.labels);
     if (rest.parent) {
@@ -147,6 +158,18 @@ export class TaskService {
     const task = await withRetry(async () => {
       const current = await this.get(ref);
       return this.storage.tasks.update(current.ref, { points }, current.version, actor);
+    });
+    await publish(this.deps, [{ type: 'TaskChanged', ref: task.ref }]);
+    return task;
+  }
+
+  /** Assign the task to an actor, or with undefined unassign it, whatever the current version. */
+  async assign(ref: string, assignee: Assignee | undefined, actor: Actor): Promise<Task> {
+    validateAssignee(assignee);
+    const task = await withRetry(async () => {
+      const current = await this.get(ref);
+      if (current.assignee === assignee) return current;
+      return this.storage.tasks.update(current.ref, { assignee }, current.version, actor);
     });
     await publish(this.deps, [{ type: 'TaskChanged', ref: task.ref }]);
     return task;

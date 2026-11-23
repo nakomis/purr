@@ -28,6 +28,7 @@ export interface Task {
   parent?: string;
   priority: string;
   points?: number;
+  assignee?: string;
   links: Link[];
   relations: Relation[];
   epics: string[];

@@ -200,6 +200,7 @@ export function createMemoryStorage(): Storage {
         ...(input.parent ? { parent: input.parent } : {}),
         priority: input.priority ?? 'none',
         ...(input.points !== undefined ? { points: input.points } : {}),
+        ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
         links: [],
         relations: [],
         epics: [],
@@ -227,6 +228,9 @@ export function createMemoryStorage(): Storage {
         .filter((t) => t.projectId === projectId)
         .filter((t) => !opts.stateIds || opts.stateIds.includes(t.stateId))
         .filter((t) => !opts.label || t.labels.includes(opts.label))
+        .filter(
+          (t) => !opts.assignee || (opts.assignee === 'none' ? !t.assignee : t.assignee === opts.assignee),
+        )
         .sort((a, b) => (a.projectRank < b.projectRank ? -1 : a.projectRank > b.projectRank ? 1 : 0));
       return paginate(items, opts);
     },
@@ -249,6 +253,7 @@ export function createMemoryStorage(): Storage {
       };
       if ('parent' in patch && patch.parent === undefined) delete next.parent;
       if ('points' in patch && patch.points === undefined) delete next.points;
+      if ('assignee' in patch && patch.assignee === undefined) delete next.assignee;
       tasks.set(ref, next);
       if (Object.keys(changes).length > 0) record(ref, actor, 'updated', changes);
       return copy(next);

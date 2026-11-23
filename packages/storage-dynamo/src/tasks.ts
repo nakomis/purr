@@ -23,6 +23,9 @@ import { cond, type Db, type TxOp, withRetry } from './db.js';
 import { keys } from './keys.js';
 import { loadProjectById } from './projects.js';
 
+const matchesAssignee = (assignee: string | undefined, want: TaskListOptions['assignee']): boolean =>
+  !want || (want === 'none' ? assignee === undefined : assignee === want);
+
 export const taskItem = (t: Task): Item =>
   toItem(t, keys.task(t.ref), keys.taskIndex(t.projectId, t.projectRank, t.sequence));
 
@@ -103,6 +106,7 @@ export function taskRepository(db: Db): TaskRepository {
           ...(input.parent ? { parent: input.parent } : {}),
           priority: input.priority ?? 'none',
           ...(input.points !== undefined ? { points: input.points } : {}),
+          ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
           links: [],
           relations: [],
           epics: [],
@@ -143,7 +147,8 @@ export function taskRepository(db: Db): TaskRepository {
         ...(opts.cursor ? { cursor: opts.cursor } : {}),
         accept: (i) =>
           (!opts.stateIds || opts.stateIds.includes(i.stateId as string)) &&
-          (!opts.label || (i.labels as string[]).includes(opts.label)),
+          (!opts.label || (i.labels as string[]).includes(opts.label)) &&
+          matchesAssignee(i.assignee as string | undefined, opts.assignee),
       });
       return {
         items: page.items.map((i) => fromItem<Task>(i)),
@@ -167,6 +172,7 @@ export function taskRepository(db: Db): TaskRepository {
       const next: Task = { ...t, ...patch, version: t.version + 1, updatedAt: nowIso(), updatedBy: actor };
       if ('parent' in patch && patch.parent === undefined) delete next.parent;
       if ('points' in patch && patch.points === undefined) delete next.points;
+      if ('assignee' in patch && patch.assignee === undefined) delete next.assignee;
       const ops: TxOp[] = [
         {
           put: taskItem(next),

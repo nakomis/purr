@@ -39,15 +39,16 @@ Refs are case-insensitive in paths (`home-42` works) and always returned upper-c
 | `POST /api/projects` | `{ prefix, name, description?, states?, labels?, metadata?, icon? }` | `201 Project` |
 | `GET /api/projects/{prefix}` | | `Project` |
 | `PATCH /api/projects/{prefix}` | `{ version, name?, description?, states?, labels?, metadata?, icon?, archived? }` | `Project` |
-| `GET /api/projects/{prefix}/tasks?state=&label=&epic=&all=true&limit=&cursor=` | | `{ "items": Task[], "cursor"?: string }` in project order. `state` is a state name or id (repeatable or comma-separated); open tasks only unless `all=true` or `state` given |
-| `POST /api/projects/{prefix}/tasks` | `{ title, description?, state?, labels?, parent?, priority?, points? }` | `201 Task` |
+| `GET /api/projects/{prefix}/tasks?state=&label=&assignee=&epic=&all=true&limit=&cursor=` | | `{ "items": Task[], "cursor"?: string }` in project order. `state` is a state name or id (repeatable or comma-separated); open tasks only unless `all=true` or `state` given |
+| `POST /api/projects/{prefix}/tasks` | `{ title, description?, state?, labels?, parent?, priority?, points?, assignee? }` | `201 Task` |
 | `POST /api/projects/{prefix}/tasks/reorder` | `{ ref, before? }` (`before` = a task ref; omitted = end) | `Task` |
 | `GET /api/projects/{prefix}/epics` | | `{ "items": Epic[] }` (epics flagged on the project) |
 | **Tasks** | | |
 | `GET /api/tasks/{ref}` | | `TaskDetail` = `Task & { project: { id, prefix, name, icon? }, state: State, comments: Comment[], children: Task[], epics: Epic[] }` |
-| `PATCH /api/tasks/{ref}` | `{ version, title?, description?, state?, labels?, parent?, priority?, points? }` | `Task` |
+| `PATCH /api/tasks/{ref}` | `{ version, title?, description?, state?, labels?, parent?, priority?, points?, assignee? }` | `Task` |
 | `POST /api/tasks/{ref}/pick-up` | | `Task` |
 | `POST /api/tasks/{ref}/state` | `{ state }` (name or id) | `Task` |
+| `PUT /api/tasks/{ref}/assignee` | `{ assignee: Assignee \| null }` (`martin`, `claude`, `bau` or `purr3d`; `null` unassigns) | `Task` |
 | `PUT /api/tasks/{ref}/points` | `{ points: number \| null }` | `Task` |
 | `PUT /api/tasks/{ref}/labels/{name}` / `DELETE` | | `Task` |
 | `POST /api/tasks/{ref}/links` | `{ url, title? }` | `201 Link` |

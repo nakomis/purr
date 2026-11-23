@@ -10,6 +10,10 @@ export type Priority = 'none' | 'low' | 'medium' | 'high' | 'urgent';
 export type RelationType = 'blocks' | 'blocked_by' | 'relates_to' | 'duplicate_of';
 
 export const ACTORS: readonly Actor[] = ['martin', 'claude', 'bau', 'purr3d', 'system'];
+
+/** Who a task can be assigned to: any actor but the system. */
+export type Assignee = Exclude<Actor, 'system'>;
+export const ASSIGNEES: readonly Assignee[] = ['martin', 'claude', 'bau', 'purr3d'];
 export const STATE_GROUPS: readonly StateGroup[] = [
   'backlog',
   'unstarted',
@@ -82,6 +86,8 @@ export interface Task {
   parent?: TaskRef;
   priority: Priority;
   points?: number;
+  /** Who is working on it, if anyone. */
+  assignee?: Assignee;
   links: Link[];
   relations: Relation[];
   epics: EpicRef[];

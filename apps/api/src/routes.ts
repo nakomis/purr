@@ -3,6 +3,8 @@
  * the request, call one service, and shape the response; the rules live in the domain.
  */
 import {
+  ASSIGNEES,
+  type Assignee,
   type BoardCard,
   COLUMNS,
   type Column,
@@ -161,6 +163,7 @@ export function buildRouter(deps: RouteDeps): Router {
     const page = await storage.tasks.listByProject(project.id, {
       ...(stateIds ? { stateIds } : {}),
       ...(req.query.label ? { label: req.query.label } : {}),
+      ...(req.query.assignee ? { assignee: assigneeFilter(req.query.assignee) } : {}),
       ...(limit ? { limit } : {}),
       ...(req.query.cursor ? { cursor: req.query.cursor } : {}),
     });
@@ -179,6 +182,7 @@ export function buildRouter(deps: RouteDeps): Router {
     const parent = str(b, 'parent');
     const prio = priority(str(b, 'priority'));
     const points = num(b, 'points');
+    const assignee = str(b, 'assignee') as Assignee | undefined;
     const task = await svc.tasks.create(
       req.params.prefix as string,
       {
@@ -189,6 +193,7 @@ export function buildRouter(deps: RouteDeps): Router {
         ...(parent !== undefined ? { parent } : {}),
         ...(prio ? { priority: prio } : {}),
         ...(points !== undefined ? { points } : {}),
+        ...(assignee !== undefined ? { assignee } : {}),
       },
       req.actor,
     );
@@ -243,6 +248,7 @@ export function buildRouter(deps: RouteDeps): Router {
     const prio = priority(str(b, 'priority'));
     if (prio) patch.priority = prio;
     if ('points' in b) patch.points = num(b, 'points');
+    if ('assignee' in b) patch.assignee = str(b, 'assignee') as Assignee | undefined;
     return ok(await svc.tasks.update(req.params.ref as string, patch, num(b, 'version', true), req.actor));
   });
 
@@ -253,6 +259,14 @@ export function buildRouter(deps: RouteDeps): Router {
   r.add('POST', '/tasks/{ref}/state', async (req) =>
     ok(await svc.tasks.setState(req.params.ref as string, str(bodyObject(req), 'state', true), req.actor)),
   );
+
+  r.add('PUT', '/tasks/{ref}/assignee', async (req) => {
+    const b = bodyObject(req);
+    if (!('assignee' in b))
+      throw new HttpError(400, 'VALIDATION', 'assignee is required (an actor, or null to unassign)');
+    const assignee = str(b, 'assignee') as Assignee | undefined;
+    return ok(await svc.tasks.assign(req.params.ref as string, assignee, req.actor));
+  });
 
   r.add('PUT', '/tasks/{ref}/points', async (req) => {
     const b = bodyObject(req);
@@ -456,3 +470,10 @@ export function buildRouter(deps: RouteDeps): Router {
 
 /** Exported for the web UI's types and tests. */
 export type { Task };
+
+/** `?assignee=` takes an actor that can be assigned, or `none` for unassigned tasks. */
+function assigneeFilter(value: string): Assignee | 'none' {
+  const v = value.toLowerCase();
+  if (v === 'none' || (ASSIGNEES as readonly string[]).includes(v)) return v as Assignee | 'none';
+  throw new HttpError(400, 'VALIDATION', `assignee must be none or one of ${ASSIGNEES.join(', ')}`);
+}

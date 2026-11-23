@@ -9,7 +9,7 @@ export function TaskRow({
   state,
   project,
 }: {
-  task: Pick<Task, 'ref' | 'title' | 'points'>;
+  task: Pick<Task, 'ref' | 'title' | 'points'> & { assignee?: Task['assignee'] };
   state?: State | undefined;
   project?: { prefix: string; icon?: string | undefined } | undefined;
 }) {
@@ -26,6 +26,11 @@ export function TaskRow({
       <span className="min-w-0 flex-1 break-words">{task.title}</span>
       {task.points !== undefined && (
         <span className="shrink-0 text-xs text-muted">{formatPoints(task.points)}</span>
+      )}
+      {task.assignee && (
+        <span className="shrink-0 text-xs text-muted" title={`Assigned to ${task.assignee}`}>
+          @{task.assignee}
+        </span>
       )}
       {state && (
         <span className="shrink-0 rounded-full bg-accent-soft px-2 text-xs text-accent">{state.name}</span>
