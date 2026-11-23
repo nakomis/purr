@@ -8,17 +8,17 @@
   },
   "description": "Purr's Lambda handlers: the HTTP API, the authoriser and the search indexer.",
   "dependencies": {
-    "@purr/domain": "workspace:*",
-    "@purr/storage-dynamo": "workspace:*",
-    "@purr/search": "workspace:*",
-    "@purr/embedder-bedrock": "workspace:*",
-    "@aws-sdk/client-sqs": "^3.940.0",
+    "@aws-sdk/client-lambda": "^3.1175.0",
     "@aws-sdk/client-s3": "^3.940.0",
+    "@purr/domain": "workspace:*",
+    "@purr/embedder-bedrock": "workspace:*",
+    "@purr/search": "workspace:*",
+    "@purr/storage-dynamo": "workspace:*",
     "aws-jwt-verify": "^5.2.1"
   },
   "devDependencies": {
-    "@purr/storage-memory": "workspace:*",
     "@purr/contracts": "workspace:*",
+    "@purr/storage-memory": "workspace:*",
     "@types/aws-lambda": "^8.10.159"
   }
 }

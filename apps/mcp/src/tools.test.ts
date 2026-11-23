@@ -293,6 +293,19 @@ const cases: Case[] = [
   },
   {
     tool: 'search',
+    args: { q: 'compacted', up_until: 'now' },
+    routes: {
+      'GET /search?q=compacted&upUntil=now': {
+        items: [],
+        indexedUntil: '2026-11-23T00:05:00.000Z',
+        fresh: false,
+      },
+    },
+    expect: [['GET', '/search?q=compacted&upUntil=now']],
+    output: /only covers up to 2026-11-23T00:05:00.000Z; a rebuild is still running/,
+  },
+  {
+    tool: 'search',
     args: {
       q: 'dns',
       mode: 'fulltext',

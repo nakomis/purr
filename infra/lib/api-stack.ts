@@ -6,11 +6,11 @@ import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import type * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import type * as s3 from 'aws-cdk-lib/aws-s3';
-import type * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import * as schedulerTargets from 'aws-cdk-lib/aws-scheduler-targets';
 import type { Construct } from 'constructs';
 import { ALLOWED_EMAILS, type DeployEnv } from './config';
 
@@ -19,7 +19,6 @@ export interface ApiStackProps extends cdk.StackProps {
   version: string;
   table: dynamodb.ITableV2;
   dataBucket: s3.IBucket;
-  eventsQueue: sqs.IQueue;
   userPoolId: string;
   userPoolClientId: string;
 }
@@ -75,14 +74,12 @@ export class ApiStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(29),
       environment: {
         ...common.environment,
-        EVENTS_QUEUE_URL: props.eventsQueue.queueUrl,
         USER_POOL_ID: props.userPoolId,
         USER_POOL_CLIENT_ID: props.userPoolClientId,
         ALLOWED_EMAILS: ALLOWED_EMAILS[deployEnv].join(','),
       },
     });
     props.table.grantReadWriteData(apiFn);
-    props.eventsQueue.grantSendMessages(apiFn);
     props.dataBucket.grantRead(apiFn, 'search/*');
 
     const indexerFn = new nodejs.NodejsFunction(this, 'IndexerFunction', {
@@ -99,19 +96,30 @@ export class ApiStack extends cdk.Stack {
         EMBED_RPS: '8',
         INDEX_BUDGET_MS: String(13 * 60 * 1000),
       },
-      // One rebuild at a time: two would race to write the same snapshot.
+      // One rebuild at a time: two would race to write the same snapshot. A second
+      // caller is throttled, which the API reads as "busy" and waits for this one.
       reservedConcurrentExecutions: 1,
     });
     props.table.grantReadData(indexerFn);
     props.dataBucket.grantReadWrite(indexerFn, 'search/*');
-    indexerFn.addEventSource(
-      new eventSources.SqsEventSource(props.eventsQueue, {
-        batchSize: 1000,
-        // Gather a minute of events into one rebuild.
-        maxBatchingWindow: cdk.Duration.seconds(60),
-        reportBatchItemFailures: true,
+
+    // The index is rebuilt on demand (the API invokes the indexer when a search needs
+    // it newer than the last build) and nightly, just after midnight London time, so
+    // a search with the default upUntil (midnight) almost never waits.
+    indexerFn.grantInvoke(apiFn);
+    apiFn.addEnvironment('INDEXER_FUNCTION_NAME', indexerFn.functionName);
+    new scheduler.Schedule(this, 'NightlyIndex', {
+      scheduleName: `purr-nightly-index-${deployEnv}`,
+      description: 'Rebuild the search index just after midnight, London time',
+      schedule: scheduler.ScheduleExpression.cron({
+        minute: '5',
+        hour: '0',
+        timeZone: cdk.TimeZone.EUROPE_LONDON,
       }),
-    );
+      target: new schedulerTargets.LambdaInvoke(indexerFn, {
+        input: scheduler.ScheduleTargetInput.fromObject({}),
+      }),
+    });
 
     // Both embed: the API for query text, the indexer for documents.
     const bedrock = new iam.PolicyStatement({

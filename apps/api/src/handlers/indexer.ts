@@ -1,34 +1,42 @@
-import { rebuildIndex } from '@purr/search';
-import type { SQSBatchResponse, SQSEvent } from 'aws-lambda';
+import { type RebuildResult, rebuildIndex, startOfDayLondon } from '@purr/search';
 import { makeEmbedder, makeSnapshotStore, makeStorage, makeVectorCache, readEnv } from '../composition.js';
 
 /**
- * One rebuild per batch of domain events (the event source gathers up to a minute
- * of them). The events only say "something changed"; the rebuild reads current
- * state, and cached vectors mean only new or changed text is embedded. A failure
- * fails the whole batch, so SQS redelivers it and, after five tries, dead-letters it.
- * So does a run that stops early (time budget or throttling): its progress is
- * saved, and the redelivery continues from there.
+ * Rebuilds the search index, when asked to and only if it needs to. Two callers:
+ *  - the API, synchronously, when a search needs the index newer than the last
+ *    build: `{ upUntil }`;
+ *  - a nightly schedule just after midnight, London time, with no upUntil: then it
+ *    means "covers the start of today".
+ * Either way it first reads the live build time, and skips the rebuild when that
+ * already covers upUntil: another caller got there first. The indexer's reserved
+ * concurrency is one, so two rebuilds never race to write the snapshot.
+ *
+ * A rebuild that runs out of time (or is throttled by Bedrock) still writes a
+ * snapshot, with full-text for everything; the next one carries on embedding from
+ * the cached vectors.
  */
-export async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
+export interface IndexerEvent {
+  upUntil?: string;
+}
+
+export type IndexerResult = { builtAt: string; skipped: true } | (RebuildResult & { skipped: false });
+
+export async function handler(event: IndexerEvent = {}): Promise<IndexerResult> {
   const env = readEnv();
-  try {
-    const result = await rebuildIndex({
-      storage: makeStorage(env),
-      embedder: makeEmbedder(env),
-      store: makeSnapshotStore(env),
-      cache: makeVectorCache(env),
-      ...(env.INDEX_BUDGET_MS ? { budgetMs: env.INDEX_BUDGET_MS } : {}),
-    });
-    console.log(JSON.stringify({ msg: 'search index rebuilt', events: event.Records.length, ...result }));
-    if (!result.complete) {
-      // Progress is saved; fail the batch so SQS redelivers it and the next run
-      // carries on from the cached vectors.
-      return { batchItemFailures: event.Records.map((r) => ({ itemIdentifier: r.messageId })) };
-    }
-    return { batchItemFailures: [] };
-  } catch (error) {
-    console.error('search index rebuild failed', error);
-    return { batchItemFailures: event.Records.map((r) => ({ itemIdentifier: r.messageId })) };
+  const store = makeSnapshotStore(env);
+  const upUntil = event.upUntil ? new Date(event.upUntil).toISOString() : startOfDayLondon(new Date());
+  const live = await store.builtAt();
+  if (live && live >= upUntil) {
+    console.log(JSON.stringify({ msg: 'search index already covers upUntil', upUntil, builtAt: live }));
+    return { builtAt: live, skipped: true };
   }
+  const result = await rebuildIndex({
+    storage: makeStorage(env),
+    embedder: makeEmbedder(env),
+    store,
+    cache: makeVectorCache(env),
+    ...(env.INDEX_BUDGET_MS ? { budgetMs: env.INDEX_BUDGET_MS } : {}),
+  });
+  console.log(JSON.stringify({ msg: 'search index rebuilt', upUntil, ...result }));
+  return { ...result, skipped: false };
 }

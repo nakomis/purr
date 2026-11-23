@@ -34,7 +34,7 @@ If you find this useful, please consider buying me a coffee:
 - **Epics**: first-class and cross-project. A task can be in several epics, an epic can hold tasks from several projects, and each epic orders its tasks independently of their projects.
 - **The priorities board** (ATC, built in): Backlog, Up next and In progress columns of project and epic cards, with story points and a "what's next" endpoint for Claude and BAU.
 - **Hybrid search**: vector (Bedrock Titan v2) plus full-text, fused with Reciprocal Rank Fusion, over tasks, comments and epics.
-- **Serverless on AWS**: Lambda, DynamoDB, S3, SQS, CloudFront and Cognito. Nothing runs, and next to nothing is billed, when idle.
+- **Serverless on AWS**: Lambda, DynamoDB, S3, EventBridge Scheduler, CloudFront and Cognito. Nothing runs, and next to nothing is billed, when idle.
 
 The full design is in [`docs/superpowers/specs/2026-11-22-purr-design.md`](docs/superpowers/specs/2026-11-22-purr-design.md).
 

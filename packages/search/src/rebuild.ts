@@ -23,6 +23,8 @@ export interface RebuildOptions {
 }
 
 export interface RebuildResult {
+  /** When this run started reading the data (ISO): the new snapshot's builtAt. */
+  builtAt: string;
   docs: number;
   /** Texts embedded in this run. */
   embedded: number;
@@ -48,6 +50,7 @@ export async function rebuildIndex(opts: RebuildOptions): Promise<RebuildResult>
   const { storage, embedder, store, cache } = opts;
   const now = opts.now ?? Date.now;
   const started = now();
+  const builtAt = new Date(started).toISOString();
   const budget = opts.budgetMs ?? Number.POSITIVE_INFINITY;
   const checkpointEvery = Math.max(1, opts.checkpointEvery ?? 4);
   const docs = await documentsFor(storage);
@@ -100,9 +103,10 @@ export async function rebuildIndex(opts: RebuildOptions): Promise<RebuildResult>
   const complete = stoppedBecause === undefined;
   if (complete) cache.prune(keep);
   await cache.save();
-  await store.save(buildSnapshot(docs, vectors, embedder.model, embedder.dimensions));
+  await store.save(buildSnapshot(docs, vectors, embedder.model, embedder.dimensions, builtAt));
   const pending = unique.length - embeddedCount;
   return {
+    builtAt,
     docs: docs.length,
     embedded: embeddedCount,
     complete,

@@ -78,7 +78,7 @@ Refs are case-insensitive in paths (`home-42` works) and always returned upper-c
 | `GET /api/next` | | `{ next?: Task, runnersUp: Task[] }` |
 | `GET /api/priority` | | `{ "items": TaskRef[] }` |
 | **Search** | | |
-| `GET /api/search?q=&mode=hybrid\|semantic\|fulltext&project=&epic=&kind=task,comment,epic&limit=` | | `{ "items": SearchHit[] }` (`project` = prefix) |
+| `GET /api/search?q=&mode=hybrid\|semantic\|fulltext&project=&epic=&kind=task,comment,epic&limit=&upUntil=` | | `{ "items": SearchHit[], "upUntil", "indexedUntil"?, "fresh"? }` (`project` = prefix). `upUntil` (`now` or ISO; default midnight at the start of today, London) is how recent the index must be: if the last build is older, the search rebuilds first, waiting up to ~20 s, then answers from what it has (`fresh: false` if the rebuild is still running) |
 
 ## Icons
 

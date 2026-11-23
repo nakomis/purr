@@ -2,7 +2,7 @@ import { createFakeEmbedder } from '@purr/contracts';
 import { createServices, type Embedder, nullPublisher } from '@purr/domain';
 import { createMemoryStorage } from '@purr/storage-memory';
 import { describe, expect, it } from 'vitest';
-import { MemoryVectorCache, type Snapshot, type SnapshotStore } from './index.js';
+import { MemorySnapshotStore, MemoryVectorCache } from './index.js';
 import { rebuildIndex } from './rebuild.js';
 
 async function seeded(n: number) {
@@ -13,18 +13,7 @@ async function seeded(n: number) {
   return storage;
 }
 
-function memoryStore(): SnapshotStore & { saved?: Snapshot } {
-  const store = {
-    saved: undefined as Snapshot | undefined,
-    async load() {
-      return store.saved;
-    },
-    async save(s: Snapshot) {
-      store.saved = s;
-    },
-  };
-  return store as SnapshotStore & { saved?: Snapshot };
-}
+const memoryStore = () => new MemorySnapshotStore();
 
 describe('rebuildIndex across attempts', () => {
   it('stops at the budget, saves what it has, and the next attempt carries on', async () => {

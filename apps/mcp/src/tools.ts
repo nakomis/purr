@@ -263,7 +263,7 @@ export const TOOLS: ToolDef[] = [
 
   tool(
     'search',
-    'Search tasks, comments and epics. `hybrid` (default) blends meaning and keywords; `semantic` for vague recollections; `fulltext` for exact words. Narrow by project prefix, epic ref, or kind.',
+    'Search tasks, comments and epics. `hybrid` (default) blends meaning and keywords; `semantic` for vague recollections; `fulltext` for exact words. Narrow by project prefix, epic ref, or kind.\n\nFreshness: by default the index covers everything up to midnight (London) at the start of today, and answers instantly. That suits anything from before today ("a while ago we discussed…"). Pass `up_until: "now"` only when the user means something from today ("I told you just before you auto-compacted"): if anything has changed since the last build, it rebuilds first, which can take ~20 s. When unsure, search with the default first and retry with "now" if nothing fits.',
     {
       q: z.string().min(1),
       mode: z.enum(['hybrid', 'semantic', 'fulltext']).optional(),
@@ -271,17 +271,27 @@ export const TOOLS: ToolDef[] = [
       epic: z.string().optional().describe('Epic ref'),
       kind: z.array(z.enum(['task', 'comment', 'epic'])).optional(),
       limit: z.number().int().positive().max(100).optional(),
+      up_until: z
+        .string()
+        .optional()
+        .describe(
+          'How recent the index must be: "now", or an ISO date-time. Default: midnight at the start of today',
+        ),
     },
     async (c, a) => {
-      const r = await c.get<{ items: SearchHit[] }>('/search', {
+      const r = await c.get<{ items: SearchHit[]; indexedUntil?: string; fresh?: boolean }>('/search', {
         q: a.q,
         mode: a.mode,
         project: a.project,
         epic: a.epic,
         kind: a.kind?.join(','),
         limit: a.limit,
+        upUntil: a.up_until,
       });
-      return renderSearch(r.items);
+      const out = renderSearch(r.items);
+      return r.fresh === false
+        ? `${out}\n\n(The index only covers up to ${r.indexedUntil ?? 'an unknown time'}; a rebuild is still running, so search again shortly for anything newer.)`
+        : out;
     },
   ),
 

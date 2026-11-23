@@ -292,7 +292,11 @@ describe('documentsFor and rebuildIndex', () => {
     const embed = vi.fn(embedder.embed);
     const counting: Embedder = { ...embedder, embed };
     const saved: Snapshot[] = [];
-    const store = { load: async () => saved.at(-1), save: async (s: Snapshot) => void saved.push(s) };
+    const store = {
+      load: async () => saved.at(-1),
+      save: async (s: Snapshot) => void saved.push(s),
+      builtAt: async () => undefined,
+    };
     const cache = new MemoryVectorCache();
 
     expect(await rebuildIndex({ storage, embedder: counting, store, cache })).toMatchObject({
@@ -341,7 +345,7 @@ describe('documentsFor and rebuildIndex', () => {
         return embedder.embed(texts);
       },
     };
-    const store = { load: async () => undefined, save: async () => {} };
+    const store = { load: async () => undefined, save: async () => {}, builtAt: async () => undefined };
     const res = await rebuildIndex({ storage, embedder: counting, store, cache: new MemoryVectorCache() });
     expect(res).toMatchObject({ docs: 151, embedded: 150, complete: true });
     expect(sizes).toEqual([64, 64, 22]);
