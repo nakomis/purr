@@ -1,7 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
 import type { Construct } from 'constructs';
 import type { DeployEnv } from './config';
 
@@ -11,13 +10,12 @@ export interface DataStackProps extends cdk.StackProps {
 
 /**
  * Everything that holds state: the single DynamoDB table (key design in
- * packages/storage-dynamo/README.md), the bucket for search snapshots and cached
- * vectors, and the queue that carries domain events to the indexer.
+ * packages/storage-dynamo/README.md) and the bucket for search snapshots and
+ * cached vectors.
  */
 export class DataStack extends cdk.Stack {
   readonly table: dynamodb.TableV2;
   readonly bucket: s3.Bucket;
-  readonly eventsQueue: sqs.Queue;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
@@ -51,26 +49,6 @@ export class DataStack extends cdk.Stack {
       autoDeleteObjects: !isProd,
       lifecycleRules: [{ prefix: 'exports/', expiration: cdk.Duration.days(90) }],
     });
-
-    const dlq = new sqs.Queue(this, 'EventsDlq', {
-      queueName: `purr-events-dlq-${deployEnv}`,
-      retentionPeriod: cdk.Duration.days(14),
-      enforceSSL: true,
-    });
-    // No longer used: the search index is rebuilt nightly and on demand. Kept, with
-    // its exports, for one deploy so the API stack can drop its imports first; the
-    // next change removes it.
-    this.eventsQueue = new sqs.Queue(this, 'EventsQueue', {
-      queueName: `purr-events-${deployEnv}`,
-      // Longer than the indexer's 15-minute timeout, so a running rebuild is never
-      // redelivered to a second instance mid-run.
-      visibilityTimeout: cdk.Duration.minutes(16),
-      retentionPeriod: cdk.Duration.days(4),
-      enforceSSL: true,
-      deadLetterQueue: { queue: dlq, maxReceiveCount: 5 },
-    });
-    this.exportValue(this.eventsQueue.queueArn);
-    this.exportValue(this.eventsQueue.queueUrl);
 
     new cdk.CfnOutput(this, 'TableName', { value: this.table.tableName });
     new cdk.CfnOutput(this, 'DataBucketName', { value: this.bucket.bucketName });

@@ -57,11 +57,8 @@ describe('DataStack', () => {
     });
   });
 
-  it('dead-letters events after five tries', () => {
-    t(data).hasResourceProperties('AWS::SQS::Queue', {
-      QueueName: 'purr-events-sandbox',
-      RedrivePolicy: Match.objectLike({ maxReceiveCount: 5 }),
-    });
+  it('has no events queue (indexing is nightly and on demand)', () => {
+    t(data).resourceCountIs('AWS::SQS::Queue', 0);
   });
 });
 
